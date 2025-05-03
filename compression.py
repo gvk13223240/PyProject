@@ -4,7 +4,7 @@ import numpy as np
 import io
 
 st.title("🗜️ Simple Image Compressor")
-
+st.write("gvk13223240")
 # Upload the image
 uploaded_file = st.file_uploader("📤 Upload an image", type=["jpg", "jpeg", "png"])
 
