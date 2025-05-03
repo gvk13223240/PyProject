@@ -12,14 +12,14 @@ if uploaded_file:
     image = Image.open(uploaded_file)
     st.image(image, caption="Original Image", use_column_width=True)
 
-    # Choose the compression level
+    # Choosing the compression level
     st.write("### 🔧 Select Compression Preset")
     compression_level = st.selectbox(
         "Choose Compression Level",
         ["Low", "Medium", "High"]
     )
 
-    # Set resize percentage and quality based on selected level
+    # Compression lvl
     if compression_level == "Low":
         resize_percent = 30
         quality = 50
@@ -30,7 +30,7 @@ if uploaded_file:
         resize_percent = 70
         quality = 90
 
-    # Resize the image using NumPy
+    # Resizing the image (array) using NumPy
     image_array = np.array(image)  
     new_width = int(image.width * resize_percent / 100)
     new_height = int(image.height * resize_percent / 100)
@@ -39,15 +39,14 @@ if uploaded_file:
     
     resized_image = Image.fromarray(resized_image_array)
 
-    # Show the resized image
+    # Showing the resized image
     st.image(resized_image, caption=f"Compressed Image ({compression_level} Quality)", use_column_width=True)
 
-    # Save the resized image to a buffer for downloading
+    #save compressed img
     buf = io.BytesIO()
     resized_image.save(buf, format="JPEG", quality=quality)
     buf.seek(0)
 
-    # Provide the download button
     st.download_button(
         label="⬇️ Download Compressed Image",
         data=buf,
