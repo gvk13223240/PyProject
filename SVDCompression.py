@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 import io
 
-st.title("Color Image Compressor using SVD")
+st.title("Image Compressor")
 st.write("gvk13223240")
 uploaded_file = st.file_uploader("Upload a color image", type=["jpg", "jpeg", "png"])
 
@@ -35,7 +35,7 @@ if uploaded_file:
         compressed_image = np.stack(compressed_channels, axis=2)
         final_image = Image.fromarray(compressed_image)
 
-        st.image(final_image, caption=f"Compressed Image with k={k}", use_column_width=True)
+        st.image(final_image, use_column_width=True)
 
         # Download button
         buf = io.BytesIO()
