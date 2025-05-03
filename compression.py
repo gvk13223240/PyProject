@@ -11,7 +11,7 @@ uploaded_file = st.file_uploader("📤 Upload an image", type=["jpg", "jpeg", "p
 if uploaded_file:
     image = Image.open(uploaded_file)
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Original Image", use_column_width=True)
+    st.image(image, caption="Original Image", use_container_width=True)
 
     # Choosing the compression level
     st.write("### 🔧 Select Compression Preset")
@@ -41,7 +41,7 @@ if uploaded_file:
     resized_image = Image.fromarray(resized_image_array)
 
     # Showing the resized image
-    st.image(resized_image, caption=f"Compressed Image ({compression_level} Quality)", use_column_width=True)
+    st.image(resized_image, caption=f"Compressed Image ({compression_level} Quality)", use_container_width=True)
 
     #save compressed img
     buf = io.BytesIO()
