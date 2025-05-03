@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 import io
 
-st.title("🌈 Color Image Compressor using SVD")
+st.title("Color Image Compressor using SVD")
 
 uploaded_file = st.file_uploader("Upload a color image", type=["jpg", "jpeg", "png"])
 
@@ -14,7 +14,7 @@ if uploaded_file:
     k = st.slider("Compression Level (Number of Singular Values)", min_value=5, max_value=min(image.size) - 1, value=50)
 
     if st.button("Compress"):
-        st.write("🔄 Compressing using SVD...")
+        st.write("🔄 Compressing...")
 
         # Convert image to NumPy array
         img_array = np.array(image, dtype=np.float64)
