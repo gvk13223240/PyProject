@@ -9,7 +9,7 @@ uploaded_file = st.file_uploader("Upload a color image", type=["jpg", "jpeg", "p
 
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Original Image", use_column_width=True)
+    st.image(image, caption="Original Image", use_container_width=True)
 
     k = st.slider("Compression Level (Number of Singular Values)", min_value=5, max_value=min(image.size) - 1, value=50)
 
@@ -35,7 +35,7 @@ if uploaded_file:
         compressed_image = np.stack(compressed_channels, axis=2)
         final_image = Image.fromarray(compressed_image)
 
-        st.image(final_image, use_column_width=True)
+        st.image(final_image, use_container_width=True)
 
         # Download button
         buf = io.BytesIO()
