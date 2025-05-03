@@ -4,7 +4,7 @@ from PIL import Image
 import io
 
 st.title("Color Image Compressor using SVD")
-
+st.write("gvk13223240")
 uploaded_file = st.file_uploader("Upload a color image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
