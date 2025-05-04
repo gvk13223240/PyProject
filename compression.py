@@ -60,7 +60,7 @@ if uploaded_file:
     compressed_buf.seek(0)
     compressed_size_kb = len(compressed_buf.getvalue()) / 1024
 
-    st.image(compressed_image, caption=f"📉 Compressed Image - {selected_key}", use_container_width=True)
+    st.image(compressed_image, caption=f" Compressed Image - {selected_key}", use_container_width=True)
     st.success(f"✅ Compressed Size: **{compressed_size_kb:.2f} KB**")
 
     # Download
@@ -70,5 +70,3 @@ if uploaded_file:
         file_name="compressed_image.jpg",
         mime="image/jpeg"
     )
-else:
-    st.info("Please upload an image to get started.")
