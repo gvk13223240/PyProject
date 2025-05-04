@@ -19,13 +19,13 @@ if uploaded_file:
         ["Low", "Medium", "High"]
     )
 
-    if compression_level == "Low":
+    if compression_level == "High":
         resize_percent = 30
         quality = 50
     elif compression_level == "Medium":
         resize_percent = 50
         quality = 70
-    elif compression_level == "High":
+    elif compression_level == "Low":
         resize_percent = 70
         quality = 90
 
