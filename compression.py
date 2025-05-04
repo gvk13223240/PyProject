@@ -50,12 +50,12 @@ if uploaded_file:
     buf = io.BytesIO()
     resized_image.save(buf, format="JPEG", quality=quality)
     buf.seek(0)
-
+    compressed_size_kb = len(buf.getvalue()) / 1024 #disaplaying compressed size
+    st.image(resized_image, caption=f"Compressed Image ({compression_level} Quality - {compressed_size_kb:.2f} KB)", use_container_width=True)
     st.download_button(
         label="⬇️ Download Compressed Image",
         data=buf,
         file_name="compressed_image.jpg",
         mime="image/jpeg"
     )
-else:
-    st.info("Please upload a JPG or PNG image to compress.")
+    
