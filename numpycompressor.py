@@ -40,20 +40,18 @@ if uploaded_file:
     new_height = int(image.height * resize_percent / 100)
     resized_img_array = np.array(Image.fromarray(img_array).resize((new_width, new_height)))
 
-    # Convert numpy array back to PIL image
+    # Converting numpy array back to PIL image
     resized_image = Image.fromarray(resized_img_array)
 
-    # Save image in memory (JPEG format)
+    # Save image in memory 
     buf = io.BytesIO()
     resized_image.save(buf, format="JPEG", quality=quality)
     buf.seek(0)
 
     compressed_size_kb = len(buf.getvalue()) / 1024
 
-    # Display the resized and compressed image
     st.image(resized_image, caption=f"Compressed Image ({quality_level} Quality - {compressed_size_kb:.2f} KB)", use_container_width=True)
 
-    # Download button for the compressed image
     st.download_button(
         label="⬇️ Download Compressed Image",
         data=buf,
