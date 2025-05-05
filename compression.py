@@ -60,6 +60,7 @@ if uploaded_file:
         st.write("You have selected the **Custom Compression Settings** option.")
         resize_percent = st.slider("Resize Percentage", min_value=10, max_value=100, value=50)
         quality = st.slider("Compression Quality", min_value=10, max_value=100, value=70)
+        quality_level = f"{quality}% Quality"  # Define the quality level for custom settings
 
     # Compress image based on selected options
     st.write("🔄 Compressing...")
@@ -67,7 +68,7 @@ if uploaded_file:
     compressed_image = compress_image(resized_image, quality)
 
     # Display compressed image
-    st.image(compressed_image, caption=f"Compressed Image ({quality_level} Quality)", use_container_width=True)
+    st.image(compressed_image, caption=f"Compressed Image ({quality_level})", use_container_width=True)
 
     # Download button for the compressed image
     st.download_button(
