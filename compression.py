@@ -54,7 +54,6 @@
 import streamlit as st
 from PIL import Image
 import io
-import time
 
 def resize_image(image, resize_percent):
     new_width = int(image.width * resize_percent / 100)
@@ -67,30 +66,61 @@ def compress_image(image, quality):
     buf.seek(0)
     return buf
 
-# Add a progress bar during compression
-def display_progress():
-    progress = st.progress(0)
-    for i in range(100):
-        time.sleep(0.05)
-        progress.progress(i + 1)
+# Set page config and title
+st.set_page_config(page_title="Image Compressor", page_icon="🗜️")
+st.title("🗜️ Simple Image Compressor")
 
-st.title("Enhanced Image Compressor")
-
+# File uploader
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Original Image", use_container_width=True)
 
-    compression_level = st.slider("Choose Compression Level", min_value=10, max_value=100, value=70, help="Lower values lead to more compression but reduced image quality.")
-    
-    if st.button("Compress"):
-        display_progress()
+    # Radio button for preset compression level
+    st.write("### Choose Compression Level (Preset Options)")
+    compression_level = st.radio(
+        "Select a Compression Level:",
+        ["Low", "Medium", "High"]
+    )
 
-        resized_image = resize_image(image, 70)
-        compressed_image = compress_image(resized_image, compression_level)
+    # Default values based on preset compression level
+    if compression_level == "High":
+        resize_percent = 30
+        quality = 50
+    elif compression_level == "Medium":
+        resize_percent = 50
+        quality = 70
+    elif compression_level == "Low":
+        resize_percent = 70
+        quality = 90
 
-        st.image(compressed_image, caption="Compressed Image", use_container_width=True)
-        
-        # Download button
-        st.download_button(label="⬇️ Download Compressed Image", data=compressed_image, file_name="compressed_image.jpg", mime="image/jpeg")
+    st.write(f"Compression Level: {compression_level} ({resize_percent}% size, {quality}% quality)")
+
+    # Option for advanced settings (custom user input)
+    st.write("### Advanced Compression Settings (Optional)")
+    advanced_settings = st.checkbox("Use Custom Compression Settings")
+
+    if advanced_settings:
+        st.write("You can adjust the compression and resize settings manually:")
+        resize_percent = st.slider("Resize Percentage", min_value=10, max_value=100, value=resize_percent)
+        quality = st.slider("Compression Quality", min_value=10, max_value=100, value=quality)
+
+    # Compress image based on selected options
+    st.write("🔄 Compressing...")
+    resized_image = resize_image(image, resize_percent)
+    compressed_image = compress_image(resized_image, quality)
+
+    # Display compressed image
+    st.image(compressed_image, caption=f"Compressed Image ({compression_level} Quality)", use_container_width=True)
+
+    # Download button for the compressed image
+    st.download_button(
+        label="⬇️ Download Compressed Image",
+        data=compressed_image,
+        file_name="compressed_image.jpg",
+        mime="image/jpeg"
+    )
+
+else:
+    st.info("Please upload an image to compress.")
