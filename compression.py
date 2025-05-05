@@ -22,12 +22,15 @@ if uploaded_file:
     if compression_level == "High":
         resize_percent = 30
         quality = 50
+        quality_level="Low"
     elif compression_level == "Medium":
         resize_percent = 50
         quality = 70
+        quality_level="Medium"
     elif compression_level == "Low":
         resize_percent = 70
         quality = 90
+        quality_level="High"
 
     new_width = int(image.width * resize_percent / 100)
     new_height = int(image.height * resize_percent / 100)
