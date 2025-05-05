@@ -35,7 +35,7 @@ if uploaded_file:
     # Convert the image to a numpy array
     img_array = np.array(image)
 
-    # Resize the image manually using numpy
+    # Resize logic
     new_width = int(image.width * resize_percent / 100)
     new_height = int(image.height * resize_percent / 100)
     resized_img_array = np.array(Image.fromarray(img_array).resize((new_width, new_height)))
