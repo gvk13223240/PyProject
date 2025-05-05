@@ -21,7 +21,7 @@ def estimate_size(image, resize_percent, quality):
 
 st.set_page_config(page_title="Image Compressor", page_icon="🗜️")
 st.title("🗜️ Simple Image Compressor")
-
+st.write("Created by - gvk13223240")
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file:
