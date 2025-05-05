@@ -2,6 +2,7 @@ import streamlit as st
 from PIL import Image
 import io
 import os
+import time
 
 # Function to resize the image based on selected percentage
 def resize_image(image, resize_percent):
@@ -23,13 +24,15 @@ st.write("Created by - gvk13223240")
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png", "bmp", "tiff", "tif", "webp", "gif"])
 
 if uploaded_file:
+    # Open and convert the uploaded image
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Original Image", use_container_width=True)
 
-    # Display original image size
-    original_size_kb = len(uploaded_file.getvalue()) / 1024
-    st.write(f"Original Image Size: {original_size_kb:.2f} KB")
+    # Display original image size in MB
+    original_size_mb = len(uploaded_file.getvalue()) / (1024 * 1024)
+    st.write(f"Original Image Size: {original_size_mb:.2f} MB")
 
+    # Compression level selection
     st.write("### Select a Compression Level:")
     compression_choice = st.selectbox(
         "Compression Level",
@@ -55,25 +58,32 @@ if uploaded_file:
         quality = st.slider("Compression Quality", min_value=10, max_value=100, value=70)
         quality_level = f"{quality}% Quality"
 
-    # Resize and compress the image
-    resized_image = resize_image(image, resize_percent)
-    compressed_image = compress_image(resized_image, quality)
+    # Start the compression animation
+    with st.spinner("Compressing the image... Please wait!"):
+        # Simulate compression delay
+        time.sleep(2)
 
-    # Get the size of the compressed image
-    actual_size_kb = len(compressed_image.getvalue()) / 1024
+        # Resize and compress the image
+        resized_image = resize_image(image, resize_percent)
+        compressed_image = compress_image(resized_image, quality)
 
-    st.write("🔄 Compressing...")
-    st.image(compressed_image, caption=f"Compressed Image ({quality_level} - {actual_size_kb:.2f} KB)", use_container_width=True)
+        # Get the size of the compressed image in MB
+        compressed_size_mb = len(compressed_image.getvalue()) / (1024 * 1024)
 
-    # Allow user to download the compressed image
-    base_filename = os.path.splitext(uploaded_file.name)[0]
-    file_name = f"{base_filename}_compressed.jpg"
+        # Display the result
+        st.write(f"🔄 Compression completed! The compressed image size is {compressed_size_mb:.2f} MB.")
+        st.image(compressed_image, caption=f"Compressed Image ({quality_level} - {compressed_size_mb:.2f} MB)", use_container_width=True)
 
-    st.download_button(
-        label="⬇️ Download Compressed Image",
-        data=compressed_image,
-        file_name=file_name,
-        mime="image/jpeg"
-    )
+        # Allow user to download the compressed image
+        base_filename = os.path.splitext(uploaded_file.name)[0]
+        file_name = f"{base_filename}_compressed.jpg"
+
+        st.download_button(
+            label="⬇️ Download Compressed Image",
+            data=compressed_image,
+            file_name=file_name,
+            mime="image/jpeg"
+        )
+
 else:
     st.info("Please upload an image to compress.")
