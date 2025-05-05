@@ -45,15 +45,15 @@ if uploaded_file:
         if preset_compression == "High":
             resize_percent = 30
             quality = 50
-            quality_level = "Low"
+            quality_level = "Low Quality"
         elif preset_compression == "Medium":
             resize_percent = 50
             quality = 70
-            quality_level = "Medium"
+            quality_level = "Medium Quality"
         elif preset_compression == "Low":
             resize_percent = 70
             quality = 90
-            quality_level = "High"
+            quality_level = "High Quality"
     else:
         st.write("You have selected the **Custom Compression Settings** option.")
         resize_percent = st.slider("Resize Percentage", min_value=10, max_value=100, value=50)
@@ -66,8 +66,7 @@ if uploaded_file:
     resized_image = resize_image(image, resize_percent)
     compressed_image = compress_image(resized_image, quality)
 
-    st.image(compressed_image, caption=f"Compressed Image ({quality_level})", use_container_width=True)
-    st.write(f"Estimated Compressed Size: {estimated_size_kb:.2f} KB")
+    st.image(compressed_image, caption=f"Compressed Image ({quality_level} - {estimated_size_kb:.2f} KB)", use_container_width=True)
 
     st.download_button(
         label="⬇️ Download Compressed Image",
