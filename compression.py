@@ -18,7 +18,7 @@ st.set_page_config(page_title="Image Compressor", page_icon="🗜️")
 st.title("🗜️ Simple Image Compressor")
 st.write("Created by - gvk13223240")
 
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp", "gif"])
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp", "gif","JPG"])
 
 if uploaded_file:
     try:
