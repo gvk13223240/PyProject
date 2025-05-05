@@ -18,69 +18,53 @@ st.set_page_config(page_title="Image Compressor", page_icon="🗜️")
 st.title("🗜️ Simple Image Compressor")
 st.write("Created by - gvk13223240")
 
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp", "gif"])
 
-if uploaded_file is not None:
+if uploaded_file:
     try:
-        # Check size and format
-        uploaded_file_size_mb = uploaded_file.size / (1024 * 1024)
-        st.write(f"📦 Uploaded file size: {uploaded_file_size_mb:.2f} MB")
-        
-        # Try to open the image
-        image = Image.open(uploaded_file)
-        st.write(f"🖼️ Detected format: {image.format}")
-        
-        if image.format.lower() not in ["jpeg", "jpg", "png"]:
-            st.error("❌ Only JPG and PNG formats are supported.")
-            st.stop()
-
-        # Convert image to RGB
-        image = image.convert("RGB")
-        st.image(image, caption="Original Image", use_container_width=True)
-
-        st.write("### Select a Compression Level:")
-        compression_choice = st.selectbox(
-            "Compression Level",
-            ["Low", "Medium", "High", "Custom"]
-        )
-
-        if compression_choice == "High":
-            resize_percent = 30
-            quality = 50
-            quality_level = "Low Quality"
-        elif compression_choice == "Medium":
-            resize_percent = 50
-            quality = 70
-            quality_level = "Medium Quality"
-        elif compression_choice == "Low":
-            resize_percent = 70
-            quality = 90
-            quality_level = "High Quality"
-        elif compression_choice == "Custom":
-            st.write("You have selected the **Custom Compression Settings** option.")
-            resize_percent = st.slider("Resize Percentage", min_value=10, max_value=100, value=50)
-            quality = st.slider("Compression Quality", min_value=10, max_value=100, value=70)
-            quality_level = f"{quality}% Quality"
-
-        resized_image = resize_image(image, resize_percent)
-        compressed_image = compress_image(resized_image, quality)
-        actual_size_kb = len(compressed_image.getvalue()) / 1024
-
-        st.write("🔄 Compressing...")
-        st.image(compressed_image, caption=f"Compressed Image ({quality_level} - {actual_size_kb:.2f} KB)", use_container_width=True)
-
-        base_filename = os.path.splitext(uploaded_file.name)[0]
-        file_name = f"{base_filename}_compressed.jpg"
-
-        st.download_button(
-            label="⬇️ Download Compressed Image",
-            data=compressed_image,
-            file_name=file_name,
-            mime="image/jpeg"
-        )
-
+        image = Image.open(uploaded_file).convert("RGB")
     except Exception as e:
-        st.error(f"❌ Failed to process image. Make sure it's a valid JPG or PNG. Error: {e}")
+        st.error(f"Unsupported or corrupted image file: {e}")
         st.stop()
+
+    st.image(image, caption="Original Image", use_container_width=True)
+
+    st.write("### Select a Compression Level:")
+    compression_choice = st.selectbox("Compression Level", ["Low", "Medium", "High", "Custom"])
+
+    if compression_choice == "High":
+        resize_percent = 30
+        quality = 50
+        quality_level = "Low Quality"
+    elif compression_choice == "Medium":
+        resize_percent = 50
+        quality = 70
+        quality_level = "Medium Quality"
+    elif compression_choice == "Low":
+        resize_percent = 70
+        quality = 90
+        quality_level = "High Quality"
+    elif compression_choice == "Custom":
+        st.write("You have selected the **Custom Compression Settings** option.")
+        resize_percent = st.slider("Resize Percentage", min_value=10, max_value=100, value=50)
+        quality = st.slider("Compression Quality", min_value=10, max_value=100, value=70)
+        quality_level = f"{quality}% Quality"
+
+    resized_image = resize_image(image, resize_percent)
+    compressed_image = compress_image(resized_image, quality)
+    actual_size_kb = len(compressed_image.getvalue()) / 1024
+
+    st.write("🔄 Compressing...")
+    st.image(compressed_image, caption=f"Compressed Image ({quality_level} - {actual_size_kb:.2f} KB)", use_container_width=True)
+
+    base_filename = os.path.splitext(uploaded_file.name)[0]
+    file_name = f"{base_filename}_compressed.jpg"
+
+    st.download_button(
+        label="⬇️ Download Compressed Image",
+        data=compressed_image,
+        file_name=file_name,
+        mime="image/jpeg"
+    )
 else:
     st.info("Please upload an image to compress.")
