@@ -54,9 +54,6 @@ if uploaded_file:
             resize_percent = 70
             quality = 90
             quality_level = "High"
-
-        st.write(f"Compression Level: {preset_compression} ({resize_percent}% size, {quality}% quality)")
-
     else:
         st.write("You have selected the **Custom Compression Settings** option.")
         resize_percent = st.slider("Resize Percentage", min_value=10, max_value=100, value=50)
