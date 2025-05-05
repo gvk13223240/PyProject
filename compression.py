@@ -30,7 +30,7 @@ if uploaded_file:
 
     st.write("### Choose one of the following options for compression:")
 
-    compression_level = st.radio(
+    compression_level = st.selectbox(
         "Select a Compression Level:",
         ["Use Preset Compression (Low, Medium, High)", "Use Custom Compression Settings"]
     )
