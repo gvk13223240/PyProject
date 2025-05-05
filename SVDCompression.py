@@ -2,7 +2,6 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 import io
-import hashlib
 
 # Custom CSS to place login button at the top-right corner
 st.markdown("""
@@ -16,12 +15,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Dummy authentication function (for demonstration)
+# Dummy authentication function (for debugging, compare plain text passwords)
 def check_login(username, password):
     correct_username = "user"
-    correct_password_hash = hashlib.sha256("password123".encode()).hexdigest()
+    correct_password = "password123"  # Using plain text for testing purposes
     
-    if username == correct_username and hashlib.sha256(password.encode()).hexdigest() == correct_password_hash:
+    print(f"Attempting login with Username: {username} and Password: {password}")  # Debugging line
+
+    if username == correct_username and password == correct_password:
         return True
     return False
 
@@ -90,6 +91,7 @@ def image_compressor():
 
 # Check if the user is logged in
 if "logged_in" not in st.session_state or not st.session_state.logged_in:
+    # If not logged in, show the login form
     login()
 else:
     # If logged in, show the image compressor
