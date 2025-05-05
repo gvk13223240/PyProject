@@ -41,7 +41,7 @@ if uploaded_file:
     buf.seek(0)
     compressed_size_kb = len(buf.getvalue()) / 1024
 
-    st.image(resized_image, caption=f"Compressed Image ({compression_level} Quality - {compressed_size_kb:.2f} KB)", use_container_width=True)
+    st.image(resized_image, caption=f"Compressed Image ({quality_level} Quality - {compressed_size_kb:.2f} KB)", use_container_width=True)
 
     st.download_button(
         label="⬇️ Download Compressed Image",
