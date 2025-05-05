@@ -79,8 +79,8 @@ if uploaded_file:
 
     # Radio button for preset compression level
     st.write("### Choose Compression Level (Preset Options)")
-    compression_level = st.radio(
-        "Select a Compression Level:",
+    compression_level = st.selectbox(
+        "Choose Compression Level",
         ["Low", "Medium", "High"]
     )
 
@@ -88,13 +88,15 @@ if uploaded_file:
     if compression_level == "High":
         resize_percent = 30
         quality = 50
+        qualit_level="Low"
     elif compression_level == "Medium":
         resize_percent = 50
         quality = 70
+        qualit_level="Medium"
     elif compression_level == "Low":
         resize_percent = 70
         quality = 90
-
+        qualit_level="High"
     st.write(f"Compression Level: {compression_level} ({resize_percent}% size, {quality}% quality)")
 
     # Option for advanced settings (custom user input)
