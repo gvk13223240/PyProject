@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageDraw
 from io import BytesIO
 
 st.set_page_config(page_title="Image Difference Highlighter", layout="wide")
@@ -32,19 +32,21 @@ if img1 and img2:
         st.image(image2, caption="Image 2", use_container_width=True)
 
     st.markdown("---")
-    sensitivity = st.slider("Sensitivity (Lower = More Sensitive)", 1, 100, 25)
-
+    sensitivity = st.slider("Sensitivity (Lower = More Sensitive)", 1, 100, 5)
     diff = ImageChops.difference(image1, image2)
     diff_np = np.array(diff)
     pixel_diff = np.linalg.norm(diff_np, axis=-1)
     mask = pixel_diff > sensitivity
 
-    highlight_np = np.array(image2)
-    highlight_np[mask] = [255, 0, 0]
-    highlight = Image.fromarray(highlight_np)
+    highlight_image = image2.copy()
+    draw = ImageDraw.Draw(highlight_image)
 
-    st.image(highlight, caption="🔍 Differences Highlighted", use_container_width=True)
+    labeled_pixels = np.where(mask)
+    for y, x in zip(*labeled_pixels):
+        draw.rectangle([x-10, y-10, x+10, y+10], outline="red", width=3)
+
+    st.image(highlight_image, caption="🔍 Differences Highlighted", use_container_width=True)
 
     buf = BytesIO()
-    highlight.save(buf, format="PNG")
+    highlight_image.save(buf, format="PNG")
     st.download_button("Download Highlighted Image", buf.getvalue(), file_name="highlighted.png")
