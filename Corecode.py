@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-from PIL import Image, ImageChops, ImageFilter
+from PIL import Image, ImageChops
 from io import BytesIO
 
 st.set_page_config(page_title="Image Difference Highlighter", layout="wide")
@@ -9,6 +9,7 @@ st.markdown("<h1 style='text-align: center;'>🖼️ Image Difference Highlighte
 st.write("Created by - gvk13223240")
 
 resize_option = st.selectbox("Resize images to match:", ("First Image", "Second Image", "Do Not Resize"))
+sensitivity = st.slider("Sensitivity (Lower = More Sensitive)", 1, 100, 25)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -26,9 +27,9 @@ if img1 and img2:
         image1 = image1.resize(image2.size)
 
     diff = ImageChops.difference(image1, image2)
-    diff_blur = diff.filter(ImageFilter.MedianFilter(size=3))
-    diff_np = np.array(diff_blur)
-    mask = np.any(diff_np > 5, axis=-1)
+    diff_np = np.array(diff)
+    pixel_diff = np.linalg.norm(diff_np, axis=-1)
+    mask = pixel_diff > sensitivity
 
     highlight_np = np.array(image2)
     highlight_np[mask] = [255, 0, 0]
