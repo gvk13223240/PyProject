@@ -39,9 +39,9 @@ if img1 and img2:
     gray_diff = np.mean(diff_np, axis=-1)
     mask = gray_diff > sensitivity
 
-    diff_blurred = Image.fromarray(gray_diff).filter(ImageFilter.GaussianBlur(radius=2))
-    diff_blurred_np = np.array(diff_blurred)
-    
+    gray_diff_img = Image.fromarray(gray_diff.astype(np.uint8))  # Convert to image before applying blur
+    diff_blurred = gray_diff_img.filter(ImageFilter.GaussianBlur(radius=2))
+
     highlight_image = np.array(image2)
     highlight_image[mask] = [255, 0, 0]
 
