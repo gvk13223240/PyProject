@@ -5,7 +5,7 @@ from PIL import Image, ImageChops, ImageDraw
 st.set_page_config(page_title="Image Difference Highlighter", layout="wide")
 
 st.markdown("<h1 style='text-align: center;'>🖼️ Image Difference Highlighter</h1>", unsafe_allow_html=True)
-
+st.write("Created by - gvk13223240")
 col1, col2 = st.columns(2)
 with col1:
     img1 = st.file_uploader("Upload First Image", type=["png", "jpg", "jpeg"], key="1")
