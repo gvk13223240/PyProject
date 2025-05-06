@@ -32,7 +32,7 @@ if img1 and img2:
         st.image(image2, caption="Image 2", use_container_width=True)
 
     st.markdown("---")
-    sensitivity = st.slider("Sensitivity (Lower = More Sensitive)", 1, 100, 5)
+    sensitivity = st.slider("Sensitivity (Lower = More Sensitive)", 1, 100, 50)
     diff = ImageChops.difference(image1, image2)
     diff_np = np.array(diff)
     pixel_diff = np.linalg.norm(diff_np, axis=-1)
