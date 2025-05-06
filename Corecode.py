@@ -39,14 +39,17 @@ if img1 and img2:
     gray_diff = np.mean(diff_np, axis=-1)
     gray_diff = np.uint8(gray_diff)
 
-    # Apply threshold to get significant differences
-    _, thresholded = cv2.threshold(gray_diff, sensitivity, 255, cv2.THRESH_BINARY)
+    # Apply thresholding to ignore small differences
+    thresholded = np.where(gray_diff > sensitivity, 255, 0)
 
-    # Use median blur to reduce noise and small variations
-    diff_blurred = cv2.medianBlur(thresholded, 5) 
+    # Convert the thresholded array to an image
+    thresholded_img = Image.fromarray(thresholded.astype(np.uint8))
+
+    # Apply median blur to remove noise
+    diff_blurred = thresholded_img.filter(ImageFilter.MedianFilter(size=5))
 
     highlight_image = np.array(image2)
-    highlight_image[diff_blurred == 255] = [255, 0, 0]
+    highlight_image[np.array(diff_blurred) == 255] = [255, 0, 0]
 
     highlight_image = Image.fromarray(highlight_image)
 
