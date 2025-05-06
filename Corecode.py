@@ -40,6 +40,7 @@ if img1 and img2:
     thresholded = np.where(gray_diff > sensitivity, 255, 0).astype(np.uint8)
     thresholded_img = Image.fromarray(thresholded)
     diff_blurred = thresholded_img.filter(ImageFilter.MedianFilter(size=5))
+    diff_blurred = diff_blurred.resize(image2.size)
 
     highlight_image = np.array(image2)
     mask = np.array(diff_blurred) == 255
