@@ -28,6 +28,6 @@ if img1 and img2:
     with col1:
         st.image(image1, caption="Image 1", use_container_width=True)
     with col2:
-        st.image(image2, caption="Image 2 (Resized)", use_container_width=True)
+        st.image(image2, caption="Image 2", use_container_width=True)
     st.markdown("---")
     st.image(highlight, caption="🔍 Differences Highlighted", use_container_width=True)
