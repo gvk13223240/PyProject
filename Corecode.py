@@ -26,8 +26,8 @@ if img1 and img2:
         draw.point((x, y), fill=(255, 0, 0))
     col1, col2 = st.columns(2)
     with col1:
-        st.image(image1, caption="Image 1", use_column_width=True)
+        st.image(image1, caption="Image 1", use_container_width=True)
     with col2:
-        st.image(image2, caption="Image 2 (Resized)", use_column_width=True)
+        st.image(image2, caption="Image 2 (Resized)", use_container_width=True)
     st.markdown("---")
-    st.image(highlight, caption="🔍 Differences Highlighted", use_column_width=True)
+    st.image(highlight, caption="🔍 Differences Highlighted", use_container_width=True)
