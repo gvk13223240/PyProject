@@ -8,7 +8,17 @@ st.set_page_config(page_title="Image Difference Highlighter", layout="wide")
 st.markdown("<h1 style='text-align: center;'>🖼️ Image Difference Highlighter</h1>", unsafe_allow_html=True)
 st.write("Created by - gvk13223240")
 
-resize_option = st.selectbox("Resize images to match:", ("First Image", "Second Image", "Do Not Resize"))
+resize_option = st.radio("Resize images to match:", ("First Image", "Second Image", "Do Not Resize"))
+
+highlight_color = st.selectbox("Select Highlight Color", ["Red", "Green", "Blue", "Yellow", "Magenta", "Cyan"])
+color_map = {
+    "Red": [255, 0, 0],
+    "Green": [0, 255, 0],
+    "Blue": [0, 0, 255],
+    "Yellow": [255, 255, 0],
+    "Magenta": [255, 0, 255],
+    "Cyan": [0, 255, 255],
+}
 
 col1, col2 = st.columns(2)
 with col1:
@@ -44,10 +54,10 @@ if img1 and img2:
 
     highlight_image = np.array(image2)
     mask = np.array(diff_blurred) == 255
-    highlight_image[mask, :] = [255, 0, 0]
+    highlight_image[mask, :] = color_map[highlight_color]
     highlight_image = Image.fromarray(highlight_image)
 
-    st.image(highlight_image, caption="🔍 Differences Highlighted", use_container_width=True)
+    st.image(highlight_image, caption=f"🔍 Differences Highlighted ({highlight_color})", use_container_width=True)
     
     buf = BytesIO()
     highlight_image.save(buf, format="PNG")
