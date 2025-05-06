@@ -9,14 +9,13 @@ st.markdown("<h1 style='text-align: center;'>🖼️ Image Difference Highlighte
 st.write("Created by - gvk13223240")
 
 resize_option = st.selectbox("Resize images to match:", ("First Image", "Second Image", "Do Not Resize"))
-sensitivity = st.slider("Sensitivity (Lower = More Sensitive)", 1, 100, 25)
 
 col1, col2 = st.columns(2)
 with col1:
     img1 = st.file_uploader("Upload First Image", type=["png", "jpg", "jpeg"], key="1")
 with col2:
     img2 = st.file_uploader("Upload Second Image", type=["png", "jpg", "jpeg"], key="2")
-
+sensitivity = st.slider("Sensitivity (Lower = More Sensitive)", 1, 100, 25)
 if img1 and img2:
     image1 = Image.open(img1).convert("RGB")
     image2 = Image.open(img2).convert("RGB")
