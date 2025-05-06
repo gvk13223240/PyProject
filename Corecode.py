@@ -37,13 +37,16 @@ if img1 and img2:
     diff_np = np.array(diff)
 
     gray_diff = np.mean(diff_np, axis=-1)
-    mask = gray_diff > sensitivity
+    gray_diff = np.uint8(gray_diff)
 
-    gray_diff_img = Image.fromarray(gray_diff.astype(np.uint8))  # Convert to image before applying blur
-    diff_blurred = gray_diff_img.filter(ImageFilter.GaussianBlur(radius=2))
+    # Apply threshold to get significant differences
+    _, thresholded = cv2.threshold(gray_diff, sensitivity, 255, cv2.THRESH_BINARY)
+
+    # Use median blur to reduce noise and small variations
+    diff_blurred = cv2.medianBlur(thresholded, 5) 
 
     highlight_image = np.array(image2)
-    highlight_image[mask] = [255, 0, 0]
+    highlight_image[diff_blurred == 255] = [255, 0, 0]
 
     highlight_image = Image.fromarray(highlight_image)
 
