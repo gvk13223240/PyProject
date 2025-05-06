@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import numpy as np
 from PIL import Image, ImageChops, ImageFilter
 from io import BytesIO
@@ -33,28 +33,21 @@ if img1 and img2:
 
     st.markdown("---")
     sensitivity = st.slider("Sensitivity (Lower = More Sensitive)", 1, 100, 50)
+
     diff = ImageChops.difference(image1, image2)
     diff_np = np.array(diff)
-
-    gray_diff = np.mean(diff_np, axis=-1)
-    gray_diff = np.uint8(gray_diff)
-
-    # Apply thresholding to ignore small differences
-    thresholded = np.where(gray_diff > sensitivity, 255, 0)
-
-    # Convert the thresholded array to an image
-    thresholded_img = Image.fromarray(thresholded.astype(np.uint8))
-
-    # Apply median blur to remove noise
+    gray_diff = np.mean(diff_np, axis=-1).astype(np.uint8)
+    thresholded = np.where(gray_diff > sensitivity, 255, 0).astype(np.uint8)
+    thresholded_img = Image.fromarray(thresholded)
     diff_blurred = thresholded_img.filter(ImageFilter.MedianFilter(size=5))
 
     highlight_image = np.array(image2)
-    highlight_image[np.array(diff_blurred) == 255] = [255, 0, 0]
-
+    mask = np.array(diff_blurred) == 255
+    highlight_image[mask, :] = [255, 0, 0]
     highlight_image = Image.fromarray(highlight_image)
 
     st.image(highlight_image, caption="🔍 Differences Highlighted", use_container_width=True)
-
+    
     buf = BytesIO()
     highlight_image.save(buf, format="PNG")
     st.download_button("Download Highlighted Image", buf.getvalue(), file_name="highlighted.png")
