@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageFilter
 from io import BytesIO
 
 st.set_page_config(page_title="Image Difference Highlighter", layout="wide")
@@ -35,11 +35,15 @@ if img1 and img2:
     sensitivity = st.slider("Sensitivity (Lower = More Sensitive)", 1, 100, 50)
     diff = ImageChops.difference(image1, image2)
     diff_np = np.array(diff)
-    pixel_diff = np.linalg.norm(diff_np, axis=-1)
-    mask = pixel_diff > sensitivity
 
+    gray_diff = np.mean(diff_np, axis=-1)
+    mask = gray_diff > sensitivity
+
+    diff_blurred = Image.fromarray(gray_diff).filter(ImageFilter.GaussianBlur(radius=2))
+    diff_blurred_np = np.array(diff_blurred)
+    
     highlight_image = np.array(image2)
-    highlight_image[mask] = [255, 0, 0]  # Set the different pixels to red
+    highlight_image[mask] = [255, 0, 0]
 
     highlight_image = Image.fromarray(highlight_image)
 
