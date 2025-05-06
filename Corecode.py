@@ -8,7 +8,7 @@ st.set_page_config(page_title="Image Difference Highlighter", layout="wide")
 st.markdown("<h1 style='text-align: center;'>🖼️ Image Difference Highlighter</h1>", unsafe_allow_html=True)
 st.write("Created by - gvk13223240")
 
-resize_option = st.radio("Resize images to match:", ("First Image", "Second Image", "Do Not Resize"))
+resize_option = st.selectbox("Resize images to match:", ("First Image", "Second Image", "Do Not Resize"))
 
 col1, col2 = st.columns(2)
 with col1:
