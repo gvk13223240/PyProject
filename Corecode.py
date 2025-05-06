@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-from PIL import Image, ImageChops, ImageDraw
+from PIL import Image, ImageChops
 from io import BytesIO
 
 st.set_page_config(page_title="Image Difference Highlighter", layout="wide")
@@ -38,12 +38,10 @@ if img1 and img2:
     pixel_diff = np.linalg.norm(diff_np, axis=-1)
     mask = pixel_diff > sensitivity
 
-    highlight_image = image2.copy()
-    draw = ImageDraw.Draw(highlight_image)
+    highlight_image = np.array(image2)
+    highlight_image[mask] = [255, 0, 0]  # Set the different pixels to red
 
-    labeled_pixels = np.where(mask)
-    for y, x in zip(*labeled_pixels):
-        draw.rectangle([x-10, y-10, x+10, y+10], outline="red", width=3)
+    highlight_image = Image.fromarray(highlight_image)
 
     st.image(highlight_image, caption="🔍 Differences Highlighted", use_container_width=True)
 
