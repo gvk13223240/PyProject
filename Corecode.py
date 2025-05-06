@@ -1,8 +1,8 @@
 import streamlit as st
 import numpy as np
 from PIL import Image, ImageChops
-
 from io import BytesIO
+import cv2
 
 st.set_page_config(page_title="Image Difference Highlighter", layout="wide")
 
@@ -28,10 +28,14 @@ if img1 and img2:
 
     diff = ImageChops.difference(image1, image2)
     diff_np = np.array(diff)
-    mask = np.any(diff_np > 30, axis=-1)
+    mask = np.any(diff_np != 0, axis=-1).astype(np.uint8) * 255
+
+    kernel = np.ones((3, 3), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, kernel)
 
     highlight_np = np.array(image2)
-    highlight_np[mask] = [255, 0, 0]
+    highlight_np[mask == 255] = [255, 0, 0]
     highlight = Image.fromarray(highlight_np)
 
     col1, col2 = st.columns(2)
