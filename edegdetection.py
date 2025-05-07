@@ -5,7 +5,7 @@ from io import BytesIO
 
 st.set_page_config(page_title="Edge Detection (Sobel)", layout="wide")
 st.markdown("<h1 style='text-align: center;'>🧠 Edge Detection using NumPy</h1>", unsafe_allow_html=True)
-
+st.write("Created by - gvk13223240")
 img = st.file_uploader("Upload an Image", type=["png", "jpg", "jpeg"])
 
 if img:
