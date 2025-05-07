@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import numpy as np
 from PIL import Image
 from io import BytesIO
@@ -6,6 +6,7 @@ from io import BytesIO
 st.set_page_config(page_title="Edge Detection (Sobel)", layout="wide")
 st.markdown("<h1 style='text-align: center;'>🧠 Edge Detection using NumPy</h1>", unsafe_allow_html=True)
 st.write("Created by - gvk13223240")
+
 img = st.file_uploader("Upload an Image", type=["png", "jpg", "jpeg"])
 
 if img:
@@ -20,6 +21,7 @@ if img:
     sobel_x = np.array([[-1, 0, 1],
                         [-2, 0, 2],
                         [-1, 0, 1]])
+
     sobel_y = np.array([[-1, -2, -1],
                         [ 0,  0,  0],
                         [ 1,  2,  1]])
