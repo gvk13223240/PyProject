@@ -37,8 +37,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title('Indian Financial Calculator')
-
+st.title('₹ Indian Financial Calculator')
+st.write('Created by - gvk13223240')
 calculation_type = st.selectbox('Choose calculation type', ['Compound Interest', 'Loan Repayment', 'Savings Growth'], index=0)
 
 if calculation_type == 'Compound Interest':
