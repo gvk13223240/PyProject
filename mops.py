@@ -35,7 +35,7 @@ def matrix_determinant(A):
 
 # Streamlit UI Setup
 st.title('Matrix Operations Calculator')
-
+st.write("Created by - gvk13223240")
 # Matrix A Input
 st.subheader("Enter Matrix A (Use spaces to separate elements in a row and new lines for rows)")
 
