@@ -1,11 +1,8 @@
 import streamlit as st
 import random
-import time
 
-# Grid size
 ROWS, COLS = 10, 10
 
-# Directions
 DIRS = {
     "Up": (-1, 0),
     "Down": (1, 0),
@@ -13,35 +10,34 @@ DIRS = {
     "Right": (0, 1),
 }
 
-# Snake node for linked list
 class Node:
     def __init__(self, position):
         self.position = position
         self.next = None
 
-# Snake class implemented as a linked list
 class Snake:
     def __init__(self, start_pos):
         self.head = Node(start_pos)
         self.tail = self.head
-        self.positions = {start_pos}  # Set for quick lookup
+        self.positions = {start_pos}
 
     def move(self, new_pos, grow=False):
-        # Add new head node
         new_head = Node(new_pos)
         new_head.next = self.head
         self.head = new_head
         self.positions.add(new_pos)
 
         if not grow:
-            # Remove tail node
-            # Find second last node
-            current = self.head
-            while current.next != self.tail:
-                current = current.next
-            self.positions.remove(self.tail.position)
-            current.next = None
-            self.tail = current
+            if self.head == self.tail:
+                self.positions.remove(self.tail.position)
+                self.head = self.tail = None
+            else:
+                current = self.head
+                while current.next != self.tail:
+                    current = current.next
+                self.positions.remove(self.tail.position)
+                current.next = None
+                self.tail = current
 
     def get_positions(self):
         pos = []
@@ -51,7 +47,6 @@ class Snake:
             current = current.next
         return pos
 
-# Initialize game state
 def init():
     st.session_state.snake = Snake((ROWS//2, COLS//2))
     st.session_state.direction = "Right"
@@ -91,17 +86,14 @@ def step():
     dx, dy = DIRS[st.session_state.direction]
     new_head = (head_x + dx, head_y + dy)
 
-    # Check collisions with walls
     if not (0 <= new_head[0] < ROWS and 0 <= new_head[1] < COLS):
         st.session_state.game_over = True
         return
 
-    # Check collision with itself
     if new_head in st.session_state.snake.positions:
         st.session_state.game_over = True
         return
 
-    # Check if food eaten
     grow = False
     if new_head == st.session_state.food:
         grow = True
@@ -110,36 +102,39 @@ def step():
 
     st.session_state.snake.move(new_head, grow=grow)
 
-# --- Streamlit app ---
-
 st.title("🐍 Snake Game with Linked List")
 
 if "snake" not in st.session_state:
     init()
 
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    if st.button("Up"):
+st.subheader("🎮 Controller")
+
+top_row = st.columns(3)
+with top_row[1]:
+    if st.button("⬆️"):
         if st.session_state.direction != "Down":
             st.session_state.direction = "Up"
-with col2:
-    if st.button("Left"):
+
+mid_row = st.columns(3)
+with mid_row[0]:
+    if st.button("⬅️"):
         if st.session_state.direction != "Right":
             st.session_state.direction = "Left"
-with col3:
-    if st.button("Right"):
+with mid_row[2]:
+    if st.button("➡️"):
         if st.session_state.direction != "Left":
             st.session_state.direction = "Right"
-with col4:
-    if st.button("Down"):
+
+bottom_row = st.columns(3)
+with bottom_row[1]:
+    if st.button("⬇️"):
         if st.session_state.direction != "Up":
             st.session_state.direction = "Down"
 
-if st.button("Restart"):
+if st.button("🔁 Restart"):
     init()
 
 step()
-
 st.markdown(f"**Score:** {st.session_state.score}")
 draw_grid()
 
