@@ -103,7 +103,7 @@ def step():
     st.session_state.snake.move(new_head, grow=grow)
 
 st.title("🐍 Snake Game with Linked List")
-
+st.write("Created by - gvk13223240")
 if "snake" not in st.session_state:
     init()
 
