@@ -5,3 +5,4 @@ Pillow
 streamlit
 matplotlib
 sounddevice
+scipy
