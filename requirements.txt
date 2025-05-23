@@ -4,3 +4,4 @@ numpy
 Pillow
 streamlit
 matplotlib
+sounddevice
