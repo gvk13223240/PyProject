@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-import sounddevice as sd
 from scipy.io.wavfile import write
 import tempfile
 
@@ -24,20 +23,24 @@ else:  # Square wave
 
 # Plot waveform
 fig, ax = plt.subplots()
-ax.plot(t[:1000], wave[:1000])  # plot first 1000 samples for clarity
+ax.plot(t[:1000], wave[:1000])  # plot first 1000 samples
 ax.set_title(f"{wave_type} Wave - {freq} Hz")
 ax.set_xlabel("Time [s]")
 ax.set_ylabel("Amplitude")
 st.pyplot(fig)
 
-# Convert wave to 16-bit PCM for playback
+# Convert wave to 16-bit PCM for playback and saving
 wave_int16 = np.int16(wave * 32767)
 
-# Play sound button
-if st.button("▶️ Play Sound"):
-    sd.play(wave_int16, sample_rate)
-
-# Optional: Save wav and provide download link
+# Save wav to a temp file
 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
     write(f.name, sample_rate, wave_int16)
-    st.download_button("⬇️ Download WAV file", f.name, file_name="sound.wav", mime="audio/wav")
+    wav_path = f.name
+
+# Streamlit audio player
+with open(wav_path, "rb") as audio_file:
+    audio_bytes = audio_file.read()
+    st.audio(audio_bytes, format="audio/wav")
+
+# Download button
+st.download_button("⬇️ Download WAV file", data=audio_bytes, file_name="waveform.wav", mime="audio/wav")
