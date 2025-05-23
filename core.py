@@ -1,46 +1,37 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.io.wavfile import write
-import tempfile
+from scipy.io import wavfile
+import io
 
-st.title("🔊 Simple Sound Wave Visualizer")
+st.title("🎵 Audio Upload, Playback & Waveform Visualizer")
 
-# Parameters
-wave_type = st.selectbox("Select Wave Type", ["Sine", "Square"])
-freq = st.slider("Frequency (Hz)", 100, 2000, 440)
-duration = st.slider("Duration (seconds)", 1, 5, 2)
-sample_rate = 44100
+# Upload audio file
+audio_file = st.file_uploader("Upload audio file", type=["wav", "mp3", "ogg", "flac"])
 
-# Generate time array
-t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
+if audio_file is not None:
+    # Play audio in Streamlit
+    st.audio(audio_file)
 
-# Generate waveform
-if wave_type == "Sine":
-    wave = 0.5 * np.sin(2 * np.pi * freq * t)
-else:  # Square wave
-    wave = 0.5 * np.sign(np.sin(2 * np.pi * freq * t))
+    # Try to read and plot waveform if it's a WAV file
+    if audio_file.type == "audio/wav":
+        # Read WAV file data
+        wav_bytes = audio_file.read()
+        samplerate, data = wavfile.read(io.BytesIO(wav_bytes))
 
-# Plot waveform
-fig, ax = plt.subplots()
-ax.plot(t[:1000], wave[:1000])  # plot first 1000 samples
-ax.set_title(f"{wave_type} Wave - {freq} Hz")
-ax.set_xlabel("Time [s]")
-ax.set_ylabel("Amplitude")
-st.pyplot(fig)
+        # If stereo, take one channel
+        if len(data.shape) > 1:
+            data = data[:, 0]
 
-# Convert wave to 16-bit PCM for playback and saving
-wave_int16 = np.int16(wave * 32767)
+        # Create time axis
+        time = np.linspace(0, len(data) / samplerate, num=len(data))
 
-# Save wav to a temp file
-with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-    write(f.name, sample_rate, wave_int16)
-    wav_path = f.name
-
-# Streamlit audio player
-with open(wav_path, "rb") as audio_file:
-    audio_bytes = audio_file.read()
-    st.audio(audio_bytes, format="audio/wav")
-
-# Download button
-st.download_button("⬇️ Download WAV file", data=audio_bytes, file_name="waveform.wav", mime="audio/wav")
+        # Plot waveform
+        fig, ax = plt.subplots()
+        ax.plot(time, data)
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel("Amplitude")
+        ax.set_title("Waveform")
+        st.pyplot(fig)
+    else:
+        st.info("Waveform visualization only supports WAV files currently.")
