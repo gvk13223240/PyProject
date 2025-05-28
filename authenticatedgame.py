@@ -1,29 +1,29 @@
 import streamlit as st
 import random
-from streamlit_oauth import OAuthLogin
+from streamlit_oauth import OAuth2Component
 
 # --- OAuth Setup ---
-oauth_login = OAuthLogin(
-    client_id_google="YOUR_GOOGLE_CLIENT_ID",
-    client_secret_google="YOUR_GOOGLE_CLIENT_SECRET",
-    client_id_github="YOUR_GITHUB_CLIENT_ID",
-    client_secret_github="YOUR_GITHUB_CLIENT_SECRET",
-    redirect_uri="YOUR_REDIRECT_URI"  # e.g. "http://localhost:8501"
+oauth_login = OAuth2Component(
+    google_client_id="YOUR_GOOGLE_CLIENT_ID",
+    google_client_secret="YOUR_GOOGLE_CLIENT_SECRET",
+    github_client_id="YOUR_GITHUB_CLIENT_ID",
+    github_client_secret="YOUR_GITHUB_CLIENT_SECRET",
+    redirect_uri="http://localhost:8501",  # or your deployed URL
+    providers=["google", "github"]
 )
 
 # --- Login Flow ---
 user_info = oauth_login.login()
 
 if user_info:
-    st.sidebar.write(f"👋 Welcome, {user_info.get('name', 'User')}!")
+    st.sidebar.success(f"👋 Welcome, {user_info.get('name') or user_info.get('login', 'User')}!")
     if st.sidebar.button("Logout"):
         oauth_login.logout()
         st.experimental_rerun()
 
-    # --- Your Snake Game Code Starts Here ---
+    # --- Snake Game Logic ---
 
     ROWS, COLS = 10, 10
-
     DIRS = {
         "Up": (-1, 0),
         "Down": (1, 0),
@@ -124,7 +124,8 @@ if user_info:
         st.session_state.snake.move(new_head, grow=grow)
 
     st.title("🐍 Snake Game with Linked List")
-    st.write("Created by - gvk13223240")
+    st.caption("Created by - gvk13223240")
+
     if "snake" not in st.session_state:
         init()
 
@@ -161,7 +162,7 @@ if user_info:
 
     if st.session_state.game_over:
         st.error("💥 Game Over! Try again.")
-
 else:
-    st.title("Please log in to play the game")
+    st.title("Login Required 🎮")
+    st.write("Please log in with Google or GitHub to play the Snake game:")
     oauth_login.render_login_buttons()
