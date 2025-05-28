@@ -6,3 +6,4 @@ streamlit
 matplotlib
 sounddevice
 scipy
+streamlit-oauth
