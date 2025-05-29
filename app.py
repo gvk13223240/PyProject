@@ -31,26 +31,23 @@ github = OAuth2Component(
 )
 
 # --- Login UI ---
-st.title("🎮 Snake Game Login")
+st.set_page_config(page_title="Snake Game", page_icon="🐍", layout="centered")
+st.title("🐍 Snake Game")
 
-col1, col2, col3 = st.columns([1,2,1])
+google_user = google.authorize_button(
+    name="Login with Google",
+    redirect_uri=REDIRECT_URI,
+    scope="openid email profile",
+    extras_params={"access_type": "offline", "prompt": "consent"},
+    pkce="S256"
+)
 
-with col2:
-    google_user = google.authorize_button(
-        name="Login with Google",
-        redirect_uri=REDIRECT_URI,
-        scope="openid email profile",
-        extras_params={"access_type": "offline", "prompt": "consent"},
-        pkce="S256"
-    )
-    st.markdown("<br>", unsafe_allow_html=True)  # spacing
-    github_user = github.authorize_button(
-        name="Login with GitHub",
-        redirect_uri=REDIRECT_URI,
-        scope="read:user"
-    )
+github_user = github.authorize_button(
+    name="Login with GitHub",
+    redirect_uri=REDIRECT_URI,
+    scope="read:user"
+)
 
-# Persist user login
 if google_user and "user_info" not in st.session_state:
     st.session_state.user_info = google_user
     st.session_state.provider = "google"
@@ -61,7 +58,6 @@ if github_user and "user_info" not in st.session_state:
 
 user_info = st.session_state.get("user_info")
 
-# Sidebar with welcome + logout
 if user_info:
     st.sidebar.success(f"👋 Welcome, {user_info.get('name') or user_info.get('login') or 'User'}!")
     if st.sidebar.button("Logout"):
@@ -111,7 +107,7 @@ class Snake:
         return pos
 
 def init():
-    st.session_state.snake = Snake((ROWS//2, COLS//2))
+    st.session_state.snake = Snake((ROWS // 2, COLS // 2))
     st.session_state.direction = "Right"
     st.session_state.food = place_food(st.session_state.snake.positions)
     st.session_state.score = 0
@@ -119,7 +115,7 @@ def init():
 
 def place_food(snake_positions):
     while True:
-        pos = (random.randint(0, ROWS-1), random.randint(0, COLS-1))
+        pos = (random.randint(0, ROWS - 1), random.randint(0, COLS - 1))
         if pos not in snake_positions:
             return pos
 
@@ -138,7 +134,7 @@ def draw_grid():
             else:
                 row.append("⬜")
         grid.append("".join(row))
-    st.markdown(f"<pre style='font-size: 20px; line-height: 1.2;'>{chr(10).join(grid)}</pre>", unsafe_allow_html=True)
+    st.markdown(f"<pre style='font-size: 24px; text-align: center;'>{chr(10).join(grid)}</pre>", unsafe_allow_html=True)
 
 def step():
     if st.session_state.game_over:
@@ -156,37 +152,62 @@ def step():
         st.session_state.food = place_food(st.session_state.snake.positions)
     st.session_state.snake.move(new_head, grow=grow)
 
-# --- Game UI ---
-st.header("🐍 Snake Game")
-
+# --- UI Layout ---
 if "snake" not in st.session_state:
     init()
 
-st.subheader("Controller")
+st.markdown("### 🕹️ Game Controller", unsafe_allow_html=True)
 
-col_up, col_mid1, col_mid2 = st.columns([1, 2, 2])
-with col_up:
-    if st.button("⬆️") and st.session_state.direction != "Down":
-        st.session_state.direction = "Up"
-with col_mid1:
-    if st.button("⬅️") and st.session_state.direction != "Right":
-        st.session_state.direction = "Left"
-with col_mid2:
-    if st.button("➡️") and st.session_state.direction != "Left":
-        st.session_state.direction = "Right"
+st.markdown(
+    """
+    <style>
+    .controller-btn {
+        font-size: 24px;
+        width: 60px;
+        height: 60px;
+        margin: 4px;
+        text-align: center;
+    }
+    .center { text-align: center; }
+    .score-board {
+        font-size: 20px;
+        margin-top: 20px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-col_down = st.columns([1])
-with col_down[0]:
-    if st.button("⬇️") and st.session_state.direction != "Up":
-        st.session_state.direction = "Down"
+controller_col1, controller_col2, controller_col3 = st.columns([1, 1, 1])
+with controller_col2:
+    if st.button("⬆️", key="up"):
+        if st.session_state.direction != "Down":
+            st.session_state.direction = "Up"
 
-if st.button("🔁 Restart"):
-    init()
+mid_row = st.columns([1, 1, 1])
+with mid_row[0]:
+    if st.button("⬅️", key="left"):
+        if st.session_state.direction != "Right":
+            st.session_state.direction = "Left"
+with mid_row[2]:
+    if st.button("➡️", key="right"):
+        if st.session_state.direction != "Left":
+            st.session_state.direction = "Right"
+
+with controller_col2:
+    if st.button("⬇️", key="down"):
+        if st.session_state.direction != "Up":
+            st.session_state.direction = "Down"
+
+restart_col = st.columns([3, 1, 3])
+with restart_col[1]:
+    if st.button("🔁 Restart"):
+        init()
 
 step()
 draw_grid()
 
-st.markdown(f"### 🏆 Score: {st.session_state.score}")
+st.markdown(f"<div class='score-board'>🏆 <strong>Score:</strong> {st.session_state.score}</div>", unsafe_allow_html=True)
 
 if st.session_state.game_over:
-    st.error("💥 Game Over! Click Restart to play again.")
+    st.markdown("<div style='color: red; font-weight: bold;'>💥 Game Over! Click Restart to play again.</div>", unsafe_allow_html=True)
