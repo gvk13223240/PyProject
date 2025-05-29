@@ -31,8 +31,7 @@ github = OAuth2Component(
 )
 
 # --- Login UI ---
-st.set_page_config(page_title="🐍 Snake Game", page_icon="🎮", layout="centered")
-st.markdown("<h1 style='text-align: center;'>🎮 Snake Game</h1>", unsafe_allow_html=True)
+st.title("🎮 Snake Game Login")
 
 google_user = google.authorize_button(
     name="Login with Google",
@@ -48,26 +47,32 @@ github_user = github.authorize_button(
     scope="read:user"
 )
 
-# Persist user info after login
-if "user_info" not in st.session_state:
-    if google_user or github_user:
-        st.session_state.user_info = google_user or github_user
+# ---- Persist user login ----
+if google_user and "user_info" not in st.session_state:
+    st.session_state.user_info = google_user
+    st.session_state.provider = "google"
+
+if github_user and "user_info" not in st.session_state:
+    st.session_state.user_info = github_user
+    st.session_state.provider = "github"
 
 user_info = st.session_state.get("user_info")
 
-# --- Main App ---
+# ---- Show sidebar if logged in ----
 if user_info:
-    with st.sidebar:
-        st.success(f"👋 Welcome, {user_info.get('name') or user_info.get('login') or 'User'}!")
-        if st.button("🔓 Logout"):
-            if "google_user" in locals() and google_user:
-                google.revoke_token(user_info.get("token", {}))
-            if "github_user" in locals() and github_user:
-                github.revoke_token(user_info.get("token", {}))
-            for key in ["user_info", "snake", "direction", "food", "score", "game_over"]:
-                if key in st.session_state:
-                    del st.session_state[key]
-            st.experimental_rerun()
+    st.sidebar.success(f"👋 Welcome, {user_info.get('name') or user_info.get('login') or 'User'}!")
+    
+    if st.sidebar.button("Logout"):
+        if st.session_state.provider == "google":
+            google.revoke_token(user_info.get("token", {}))
+        elif st.session_state.provider == "github":
+            github.revoke_token(user_info.get("token", {}))
+        st.session_state.clear()
+        st.experimental_rerun()
+else:
+    st.warning("🔐 Please log in to play the Snake game.")
+    st.stop()  # <- THIS IS IMPORTANT TO HALT UNAUTHORIZED ACCESS
+
 
     # --- Snake Game Logic ---
     ROWS, COLS = 10, 10
