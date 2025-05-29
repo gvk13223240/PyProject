@@ -48,17 +48,23 @@ github_user = github.authorize_button(
     scope="read:user"
 )
 
-user_info = google_user or github_user
+# Persist user_info after login
+if "user_info" not in st.session_state:
+    if google_user or github_user:
+        st.session_state.user_info = google_user or github_user
+
+user_info = st.session_state.get("user_info")
 
 if user_info:
     st.sidebar.success(f"👋 Welcome, {user_info.get('name') or user_info.get('login') or 'User'}!")
     if st.sidebar.button("Logout"):
-        if google_user:
+        if "google_user" in locals() and google_user:
             google.revoke_token(user_info.get("token", {}))
-        if github_user:
+        if "github_user" in locals() and github_user:
             github.revoke_token(user_info.get("token", {}))
-        del st.session_state.token
+        st.session_state.clear()
         st.experimental_rerun()
+
 
     # --- Snake Game Starts ---
     ROWS, COLS = 10, 10
