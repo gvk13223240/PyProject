@@ -30,26 +30,27 @@ github = OAuth2Component(
     token_endpoint="https://github.com/login/oauth/access_token"
 )
 
-st.set_page_config(page_title="Snake Game", page_icon="🐍", layout="centered")
+# --- Login UI ---
+st.title("🎮 Snake Game Login")
 
-st.title("🐍 Snake Game with Login")
+col1, col2, col3 = st.columns([1,2,1])
 
-# ---- Login Buttons ----
-google_user = google.authorize_button(
-    name="Login with Google",
-    redirect_uri=REDIRECT_URI,
-    scope="openid email profile",
-    extras_params={"access_type": "offline", "prompt": "consent"},
-    pkce="S256"
-)
+with col2:
+    google_user = google.authorize_button(
+        name="Login with Google",
+        redirect_uri=REDIRECT_URI,
+        scope="openid email profile",
+        extras_params={"access_type": "offline", "prompt": "consent"},
+        pkce="S256"
+    )
+    st.markdown("<br>", unsafe_allow_html=True)  # spacing
+    github_user = github.authorize_button(
+        name="Login with GitHub",
+        redirect_uri=REDIRECT_URI,
+        scope="read:user"
+    )
 
-github_user = github.authorize_button(
-    name="Login with GitHub",
-    redirect_uri=REDIRECT_URI,
-    scope="read:user"
-)
-
-# ---- Persist user info ----
+# Persist user login
 if google_user and "user_info" not in st.session_state:
     st.session_state.user_info = google_user
     st.session_state.provider = "google"
@@ -60,13 +61,13 @@ if github_user and "user_info" not in st.session_state:
 
 user_info = st.session_state.get("user_info")
 
-# ---- Sidebar UI ----
+# Sidebar with welcome + logout
 if user_info:
     st.sidebar.success(f"👋 Welcome, {user_info.get('name') or user_info.get('login') or 'User'}!")
-    if st.sidebar.button("🚪 Logout"):
-        if st.session_state.get("provider") == "google":
+    if st.sidebar.button("Logout"):
+        if st.session_state.provider == "google":
             google.revoke_token(user_info.get("token", {}))
-        elif st.session_state.get("provider") == "github":
+        elif st.session_state.provider == "github":
             github.revoke_token(user_info.get("token", {}))
         st.session_state.clear()
         st.experimental_rerun()
@@ -74,7 +75,7 @@ else:
     st.warning("🔐 Please log in to play the Snake game.")
     st.stop()
 
-# ---- Snake Game Code (accessible only after login) ----
+# --- Snake Game Logic ---
 ROWS, COLS = 10, 10
 DIRS = {"Up": (-1, 0), "Down": (1, 0), "Left": (0, -1), "Right": (0, 1)}
 
@@ -110,7 +111,7 @@ class Snake:
         return pos
 
 def init():
-    st.session_state.snake = Snake((ROWS // 2, COLS // 2))
+    st.session_state.snake = Snake((ROWS//2, COLS//2))
     st.session_state.direction = "Right"
     st.session_state.food = place_food(st.session_state.snake.positions)
     st.session_state.score = 0
@@ -118,7 +119,7 @@ def init():
 
 def place_food(snake_positions):
     while True:
-        pos = (random.randint(0, ROWS - 1), random.randint(0, COLS - 1))
+        pos = (random.randint(0, ROWS-1), random.randint(0, COLS-1))
         if pos not in snake_positions:
             return pos
 
@@ -137,11 +138,11 @@ def draw_grid():
             else:
                 row.append("⬜")
         grid.append("".join(row))
-    st.markdown(f"<pre style='font-size: 20px; line-height: 1.2'>{chr(10).join(grid)}</pre>", unsafe_allow_html=True)
+    st.markdown(f"<pre style='font-size: 20px; line-height: 1.2;'>{chr(10).join(grid)}</pre>", unsafe_allow_html=True)
 
 def step():
     if st.session_state.game_over:
-        st.warning("💥 Game Over! Press Restart.")
+        st.warning("💥 Game Over! Press Restart to try again.")
         return
     head_x, head_y = st.session_state.snake.head.position
     dx, dy = DIRS[st.session_state.direction]
@@ -155,35 +156,37 @@ def step():
         st.session_state.food = place_food(st.session_state.snake.positions)
     st.session_state.snake.move(new_head, grow=grow)
 
-# ---- Game UI ----
-st.markdown("### 🎮 Controller")
+# --- Game UI ---
+st.header("🐍 Snake Game")
+
 if "snake" not in st.session_state:
     init()
 
-top = st.columns(3)
-with top[1]:
+st.subheader("Controller")
+
+col_up, col_mid1, col_mid2 = st.columns([1, 2, 2])
+with col_up:
     if st.button("⬆️") and st.session_state.direction != "Down":
         st.session_state.direction = "Up"
-
-middle = st.columns(3)
-with middle[0]:
+with col_mid1:
     if st.button("⬅️") and st.session_state.direction != "Right":
         st.session_state.direction = "Left"
-with middle[2]:
+with col_mid2:
     if st.button("➡️") and st.session_state.direction != "Left":
         st.session_state.direction = "Right"
 
-bottom = st.columns(3)
-with bottom[1]:
+col_down = st.columns([1])
+with col_down[0]:
     if st.button("⬇️") and st.session_state.direction != "Up":
         st.session_state.direction = "Down"
 
-if st.button("🔁 Restart Game"):
+if st.button("🔁 Restart"):
     init()
 
 step()
 draw_grid()
-st.markdown(f"**🏆 Score:** `{st.session_state.score}`")
+
+st.markdown(f"### 🏆 Score: {st.session_state.score}")
 
 if st.session_state.game_over:
-    st.error("💀 Game Over! Hit Restart to try again.")
+    st.error("💥 Game Over! Click Restart to play again.")
