@@ -7,3 +7,5 @@ matplotlib
 sounddevice
 scipy
 streamlit-oauth
+python-dotenv
+streamlit-oauth
