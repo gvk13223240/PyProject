@@ -4,16 +4,18 @@ import os
 from dotenv import load_dotenv
 from streamlit_oauth import OAuth2Component
 
-# Load secrets from .env file
-load_dotenv()
+# Load local .env only if running locally (not in Streamlit Cloud)
+if "STREAMLIT_SERVER_PORT" not in os.environ:
+    load_dotenv()
 
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
-GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
-REDIRECT_URI = "http://localhost:8501"
+# Load secrets from env variables or Streamlit Secrets
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID") or st.secrets.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET") or st.secrets.get("GOOGLE_CLIENT_SECRET")
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID") or st.secrets.get("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET") or st.secrets.get("GITHUB_CLIENT_SECRET")
+REDIRECT_URI = os.getenv("REDIRECT_URI") or st.secrets.get("REDIRECT_URI") or "http://localhost:8501"
 
-# Google OAuth
+# Initialize OAuth2 Components
 google = OAuth2Component(
     client_id=GOOGLE_CLIENT_ID,
     client_secret=GOOGLE_CLIENT_SECRET,
@@ -22,7 +24,6 @@ google = OAuth2Component(
     revoke_token_endpoint="https://oauth2.googleapis.com/revoke"
 )
 
-# GitHub OAuth
 github = OAuth2Component(
     client_id=GITHUB_CLIENT_ID,
     client_secret=GITHUB_CLIENT_SECRET,
