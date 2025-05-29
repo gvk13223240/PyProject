@@ -148,7 +148,6 @@ if user_info:
     # --- UI Layout ---
     if "snake" not in st.session_state:
         init()
-    st.write("Created by - gvk13223240")
     st.subheader("🎮 Game Controller")
 
     top_row = st.columns([1, 1, 1])
