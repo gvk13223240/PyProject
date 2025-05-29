@@ -4,18 +4,17 @@ import os
 from dotenv import load_dotenv
 from streamlit_oauth import OAuth2Component
 
-# Load local .env only if running locally (not in Streamlit Cloud)
+# Load environment variables
 if "STREAMLIT_SERVER_PORT" not in os.environ:
     load_dotenv()
 
-# Load secrets from env variables or Streamlit Secrets
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID") or st.secrets.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET") or st.secrets.get("GOOGLE_CLIENT_SECRET")
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID") or st.secrets.get("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET") or st.secrets.get("GITHUB_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI") or st.secrets.get("REDIRECT_URI") or "http://localhost:8501"
 
-# Initialize OAuth2 Components
+# OAuth2 Setup
 google = OAuth2Component(
     client_id=GOOGLE_CLIENT_ID,
     client_secret=GOOGLE_CLIENT_SECRET,
@@ -32,7 +31,8 @@ github = OAuth2Component(
 )
 
 # --- Login UI ---
-st.title("🎮 Snake Game Login")
+st.set_page_config(page_title="🐍 Snake Game", page_icon="🎮", layout="centered")
+st.markdown("<h1 style='text-align: center;'>🎮 Snake Game</h1>", unsafe_allow_html=True)
 
 google_user = google.authorize_button(
     name="Login with Google",
@@ -48,25 +48,28 @@ github_user = github.authorize_button(
     scope="read:user"
 )
 
-# Persist user_info after login
+# Persist user info after login
 if "user_info" not in st.session_state:
     if google_user or github_user:
         st.session_state.user_info = google_user or github_user
 
 user_info = st.session_state.get("user_info")
 
+# --- Main App ---
 if user_info:
-    st.sidebar.success(f"👋 Welcome, {user_info.get('name') or user_info.get('login') or 'User'}!")
-    if st.sidebar.button("Logout"):
-        if "google_user" in locals() and google_user:
-            google.revoke_token(user_info.get("token", {}))
-        if "github_user" in locals() and github_user:
-            github.revoke_token(user_info.get("token", {}))
-        st.session_state.clear()
-        st.experimental_rerun()
+    with st.sidebar:
+        st.success(f"👋 Welcome, {user_info.get('name') or user_info.get('login') or 'User'}!")
+        if st.button("🔓 Logout"):
+            if "google_user" in locals() and google_user:
+                google.revoke_token(user_info.get("token", {}))
+            if "github_user" in locals() and github_user:
+                github.revoke_token(user_info.get("token", {}))
+            for key in ["user_info", "snake", "direction", "food", "score", "game_over"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.experimental_rerun()
 
-
-    # --- Snake Game Starts ---
+    # --- Snake Game Logic ---
     ROWS, COLS = 10, 10
     DIRS = {"Up": (-1, 0), "Down": (1, 0), "Left": (0, -1), "Right": (0, 1)}
 
@@ -124,39 +127,36 @@ if user_info:
                 else:
                     row.append("⬜")
             grid.append("".join(row))
-        st.text("\n".join(grid))
+        st.markdown(f"<pre style='font-size: 18px;'>{chr(10).join(grid)}</pre>", unsafe_allow_html=True)
 
     def step():
         if st.session_state.game_over:
-            st.warning("Game Over! Press Restart to play again.")
+            st.warning("💥 Game Over! Press Restart to try again.")
             return
         head_x, head_y = st.session_state.snake.head.position
         dx, dy = DIRS[st.session_state.direction]
         new_head = (head_x + dx, head_y + dy)
-        if not (0 <= new_head[0] < ROWS and 0 <= new_head[1] < COLS):
-            st.session_state.game_over = True; return
-        if new_head in st.session_state.snake.positions:
-            st.session_state.game_over = True; return
+        if not (0 <= new_head[0] < ROWS and 0 <= new_head[1] < COLS) or new_head in st.session_state.snake.positions:
+            st.session_state.game_over = True
+            return
         grow = new_head == st.session_state.food
         if grow:
             st.session_state.score += 1
             st.session_state.food = place_food(st.session_state.snake.positions)
         st.session_state.snake.move(new_head, grow=grow)
 
-    st.title("🐍 Snake Game with Linked List")
-    st.caption("Created by - gvk13223240")
-
+    # --- UI Layout ---
     if "snake" not in st.session_state:
         init()
 
-    st.subheader("🎮 Controller")
+    st.subheader("🎮 Game Controller")
 
-    top_row = st.columns(3)
+    top_row = st.columns([1, 1, 1])
     with top_row[1]:
         if st.button("⬆️") and st.session_state.direction != "Down":
             st.session_state.direction = "Up"
 
-    mid_row = st.columns(3)
+    mid_row = st.columns([1, 1, 1])
     with mid_row[0]:
         if st.button("⬅️") and st.session_state.direction != "Right":
             st.session_state.direction = "Left"
@@ -164,7 +164,7 @@ if user_info:
         if st.button("➡️") and st.session_state.direction != "Left":
             st.session_state.direction = "Right"
 
-    bottom_row = st.columns(3)
+    bottom_row = st.columns([1, 1, 1])
     with bottom_row[1]:
         if st.button("⬇️") and st.session_state.direction != "Up":
             st.session_state.direction = "Down"
@@ -173,11 +173,11 @@ if user_info:
         init()
 
     step()
-    st.markdown(f"**Score:** {st.session_state.score}")
     draw_grid()
+    st.markdown(f"**🏆 Score:** {st.session_state.score}", unsafe_allow_html=True)
 
     if st.session_state.game_over:
-        st.error("💥 Game Over! Try again.")
+        st.error("💥 Game Over! Click Restart to play again.")
 
 else:
-    st.warning("🔐 Please log in to play the Snake game.")
+    st.warning("🔐 Please log in using Google or GitHub to start playing.")
