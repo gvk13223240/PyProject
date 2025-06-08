@@ -80,7 +80,7 @@ if uploaded_files:
     # Show Slide Mockup Previews
     st.subheader("🔍 Slide Preview")
     for idx, preview in enumerate(create_slide_mockups(uploaded_files, layout), 1):
-        st.image(preview, caption=f"Slide {idx}", use_column_width=True)
+        st.image(preview, caption=f"Slide {idx}", use_container_width =True)
 
 # Footer
 st.markdown("""
