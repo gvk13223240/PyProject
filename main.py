@@ -42,7 +42,45 @@ def screenshots_to_pptx_from_memory(image_files, output_path="Screenshots_Presen
 
     prs.save(output_path)
 
+# ... (rest of your app code)
+
 st.title("📸 Images to PPTX Converter")
+
+uploaded_files = st.file_uploader("Upload images", accept_multiple_files=True, type=['png','jpg','jpeg'])
+
+if uploaded_files:
+    st.image([Image.open(file) for file in uploaded_files], width=200, caption=[file.name for file in uploaded_files])
+    if st.button("Generate PPTX"):
+        screenshots_to_pptx_from_memory(uploaded_files)
+        with open("Screenshots_Presentation.pptx", "rb") as f:
+            st.download_button(
+                label="Download PPTX",
+                data=f,
+                file_name="Screenshots_Presentation.pptx",
+                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            )
+
+# Copyright footer at the bottom, centered and subtle
+st.markdown(
+    """
+    <style>
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        text-align: center;
+        color: gray;
+        font-size: 12px;
+        padding: 10px 0;
+    }
+    </style>
+    <div class="footer">
+        &copy; 2025 Your Name or Company. All rights reserved.
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 uploaded_files = st.file_uploader("Upload images", accept_multiple_files=True, type=['png','jpg','jpeg'])
 
