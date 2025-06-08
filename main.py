@@ -1,6 +1,6 @@
 import streamlit as st
 from pptx import Presentation
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 from PIL import Image
 import io
 
@@ -20,29 +20,32 @@ def screenshots_to_pptx_from_memory(image_files, output_path="Screenshots_Presen
 
         slide = prs.slides.add_slide(blank_layout)
 
-        # Scale image to slide size while maintaining aspect ratio
-        slide_width = prs.slide_width
-        slide_height = prs.slide_height
+        slide_width = prs.slide_width.inches
+        slide_height = prs.slide_height.inches
 
         img_ratio = width_inches / height_inches
         slide_ratio = slide_width / slide_height
 
         if img_ratio > slide_ratio:
             pic_width = slide_width
-            pic_height = int(slide_width / img_ratio)
+            pic_height = slide_width / img_ratio
         else:
             pic_height = slide_height
-            pic_width = int(slide_height * img_ratio)
+            pic_width = slide_height * img_ratio
 
         image_stream = io.BytesIO()
         img.save(image_stream, format="PNG")
         image_stream.seek(0)
 
-        slide.shapes.add_picture(image_stream, left=Inches(0), top=Inches(0), width=pic_width, height=pic_height)
+        slide.shapes.add_picture(
+            image_stream,
+            left=Inches((slide_width - pic_width) / 2),
+            top=Inches((slide_height - pic_height) / 2),
+            width=Inches(pic_width),
+            height=Inches(pic_height),
+        )
 
     prs.save(output_path)
-
-# ... (rest of your app code)
 
 st.title("📸 Images to PPTX Converter")
 
@@ -59,8 +62,9 @@ if uploaded_files:
                 file_name="Screenshots_Presentation.pptx",
                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
             )
+        st.success("PPTX file generated successfully!")
+        st.balloons()
 
-# Copyright footer at the bottom, centered and subtle
 st.markdown(
     """
     <style>
@@ -73,27 +77,12 @@ st.markdown(
         color: gray;
         font-size: 12px;
         padding: 10px 0;
+        background-color: #f0f2f6;
     }
     </style>
     <div class="footer">
-        &copy; 2025 Your Name or Company. All rights reserved.
+        &copy; 2025 Vamshi Krishna G. All rights reserved.
     </div>
     """,
     unsafe_allow_html=True,
 )
-
-uploaded_files = st.file_uploader("Upload images", accept_multiple_files=True, type=['png','jpg','jpeg'])
-
-if uploaded_files:
-    st.image([Image.open(file) for file in uploaded_files], width=200, caption=[file.name for file in uploaded_files])
-    if st.button("Generate PPTX"):
-        screenshots_to_pptx_from_memory(uploaded_files)
-        with open("Screenshots_Presentation.pptx", "rb") as f:
-            btn = st.download_button(
-                label="Download PPTX",
-                data=f,
-                file_name="Screenshots_Presentation.pptx",
-                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            )
-        st.success("PPTX file generated successfully!")
-        st.balloons()
