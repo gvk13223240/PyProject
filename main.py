@@ -1,10 +1,10 @@
 import streamlit as st
 from pptx import Presentation
 from pptx.util import Inches
-from PIL import Image, ImageDraw
+from PIL import Image
 import io
-import math
 
+# Layout options
 layout_options = {
     "1 image per slide (1x1)": (1, 1),
     "2 images per slide (2x1)": (2, 1),
@@ -12,75 +12,83 @@ layout_options = {
     "6 images per slide (3x2)": (3, 2)
 }
 
-def generate_pptx(image_files, layout, output_path="Screenshots_Presentation.pptx"):
-    prs = Presentation()
-    blank_layout = prs.slide_layouts[6]
-    slide_width = prs.slide_width
-    slide_height = prs.slide_height
+# Session state setup
+if "preview_mode" not in st.session_state:
+    st.session_state.preview_mode = False
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = None
+if "layout" not in st.session_state:
+    st.session_state.layout = None
 
-    cols, rows = layout
-    per_slide = cols * rows
-    img_width = slide_width // cols
-    img_height = slide_height // rows
-
-    for i in range(0, len(image_files), per_slide):
-        slide = prs.slides.add_slide(blank_layout)
-        for j, image_file in enumerate(image_files[i:i+per_slide]):
-            img = Image.open(image_file)
-            image_stream = io.BytesIO()
-            img.save(image_stream, format="PNG")
-            image_stream.seek(0)
-            col = j % cols
-            row = j // cols
-            slide.shapes.add_picture(image_stream, col * img_width, row * img_height, width=img_width, height=img_height)
-
-    prs.save(output_path)
-
-def create_slide_mockups(image_files, layout):
-    slide_previews = []
-    cols, rows = layout
-    per_slide = cols * rows
-    thumb_width, thumb_height = 200 * cols, 150 * rows
-    box_w, box_h = thumb_width // cols, thumb_height // rows
-
-    for i in range(0, len(image_files), per_slide):
-        canvas = Image.new("RGB", (thumb_width, thumb_height), "white")
-        for j, image_file in enumerate(image_files[i:i+per_slide]):
-            thumb = Image.open(image_file).copy()
-            thumb.thumbnail((box_w, box_h))
-            x = (j % cols) * box_w
-            y = (j // cols) * box_h
-            canvas.paste(thumb, (x, y))
-        slide_previews.append(canvas)
-    return slide_previews
-
-# Streamlit UI
-st.set_page_config(page_title="PPT Generator", layout="centered")
+# Title
 st.title("📸 Images to PPTX Converter")
 
-selected_layout = st.selectbox("Choose layout per slide", list(layout_options.keys()))
-layout = layout_options[selected_layout]
+# Upload and layout selection
+if not st.session_state.preview_mode:
+    uploaded_files = st.file_uploader("Upload images", type=['png', 'jpg', 'jpeg'], accept_multiple_files=True)
+    layout_name = st.selectbox("Choose layout", list(layout_options.keys()))
 
-uploaded_files = st.file_uploader("Upload images", type=['png', 'jpg', 'jpeg'], accept_multiple_files=True)
+    if uploaded_files:
+        st.session_state.uploaded_files = uploaded_files
+        st.session_state.layout = layout_options[layout_name]
 
-# Show Generate Button at Top
-if uploaded_files:
-    if st.button("🚀 Generate PPTX"):
-        generate_pptx(uploaded_files, layout)
+        if st.button("🔍 Preview Slides"):
+            st.session_state.preview_mode = True
+            st.experimental_rerun()
+
+# Slide preview
+if st.session_state.preview_mode:
+    def create_slide_mockups(files, layout):
+        previews = []
+        cols, rows = layout
+        per_slide = cols * rows
+        canvas_w, canvas_h = 200 * cols, 150 * rows
+        box_w, box_h = canvas_w // cols, canvas_h // rows
+
+        for i in range(0, len(files), per_slide):
+            canvas = Image.new("RGB", (canvas_w, canvas_h), "white")
+            for j, f in enumerate(files[i:i+per_slide]):
+                img = Image.open(f)
+                img.thumbnail((box_w, box_h))
+                x = (j % cols) * box_w
+                y = (j // cols) * box_h
+                canvas.paste(img, (x, y))
+            previews.append(canvas)
+        return previews
+
+    st.subheader("📽️ Slide Previews")
+    slides = create_slide_mockups(st.session_state.uploaded_files, st.session_state.layout)
+    for i, img in enumerate(slides, 1):
+        st.image(img, caption=f"Slide {i}", use_column_width=True)
+
+    def generate_pptx(files, layout, filename="Screenshots_Presentation.pptx"):
+        prs = Presentation()
+        blank_layout = prs.slide_layouts[6]
+        sw, sh = prs.slide_width, prs.slide_height
+        cols, rows = layout
+        per_slide = cols * rows
+        img_w, img_h = sw // cols, sh // rows
+
+        for i in range(0, len(files), per_slide):
+            slide = prs.slides.add_slide(blank_layout)
+            for j, f in enumerate(files[i:i+per_slide]):
+                img = Image.open(f)
+                stream = io.BytesIO()
+                img.save(stream, format="PNG")
+                stream.seek(0)
+                x = (j % cols) * img_w
+                y = (j // cols) * img_h
+                slide.shapes.add_picture(stream, x, y, width=img_w, height=img_h)
+        prs.save(filename)
+
+    if st.button("📥 Download PPTX"):
+        generate_pptx(st.session_state.uploaded_files, st.session_state.layout)
         with open("Screenshots_Presentation.pptx", "rb") as f:
-            st.download_button(
-                label="📥 Download PPTX",
-                data=f,
-                file_name="Screenshots_Presentation.pptx",
-                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            )
-        st.success("✅ PPTX generated successfully!")
-        st.balloons()
+            st.download_button("Download Final PPTX", f, file_name="Screenshots_Presentation.pptx", mime="application/vnd.openxmlformats-officedocument.presentationml.presentation")
 
-    # Show Slide Mockup Previews
-    st.subheader("🔍 Slide Preview")
-    for idx, preview in enumerate(create_slide_mockups(uploaded_files, layout), 1):
-        st.image(preview, caption=f"Slide {idx}", use_container_width =True)
+    if st.button("⬅️ Go Back"):
+        st.session_state.preview_mode = False
+        st.experimental_rerun()
 
 # Footer
 st.markdown("""
