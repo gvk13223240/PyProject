@@ -1,0 +1,61 @@
+import streamlit as st
+from pptx import Presentation
+from pptx.util import Inches
+from PIL import Image
+import io
+
+def screenshots_to_pptx_from_memory(image_files, output_path="Screenshots_Presentation.pptx"):
+    prs = Presentation()
+    blank_layout = prs.slide_layouts[6]
+
+    for image_file in image_files:
+        img = Image.open(image_file)
+        img_width_px, img_height_px = img.size
+        dpi = img.info.get("dpi", (96, 96))
+        dpi_x = dpi[0] if dpi[0] else 96
+        dpi_y = dpi[1] if dpi[1] else 96
+
+        width_inches = img_width_px / dpi_x
+        height_inches = img_height_px / dpi_y
+
+        slide = prs.slides.add_slide(blank_layout)
+
+        # Scale image to slide size while maintaining aspect ratio
+        slide_width = prs.slide_width
+        slide_height = prs.slide_height
+
+        img_ratio = width_inches / height_inches
+        slide_ratio = slide_width / slide_height
+
+        if img_ratio > slide_ratio:
+            pic_width = slide_width
+            pic_height = int(slide_width / img_ratio)
+        else:
+            pic_height = slide_height
+            pic_width = int(slide_height * img_ratio)
+
+        image_stream = io.BytesIO()
+        img.save(image_stream, format="PNG")
+        image_stream.seek(0)
+
+        slide.shapes.add_picture(image_stream, left=Inches(0), top=Inches(0), width=pic_width, height=pic_height)
+
+    prs.save(output_path)
+
+st.title("📸 Images to PPTX Converter")
+
+uploaded_files = st.file_uploader("Upload images", accept_multiple_files=True, type=['png','jpg','jpeg'])
+
+if uploaded_files:
+    st.image([Image.open(file) for file in uploaded_files], width=200, caption=[file.name for file in uploaded_files])
+    if st.button("Generate PPTX"):
+        screenshots_to_pptx_from_memory(uploaded_files)
+        with open("Screenshots_Presentation.pptx", "rb") as f:
+            btn = st.download_button(
+                label="Download PPTX",
+                data=f,
+                file_name="Screenshots_Presentation.pptx",
+                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            )
+        st.success("PPTX file generated successfully!")
+        st.balloons()
