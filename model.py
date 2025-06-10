@@ -16,7 +16,8 @@ from streamlit_image_comparison import image_comparison
 # ---------------------------
 USERS = {
     "alice": "pass123",
-    "bob": "hello456"
+    "bob": "hello456",
+    "Robert":"12345"
 }
 
 def login():
