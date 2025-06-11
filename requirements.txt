@@ -11,3 +11,5 @@ python-dotenv
 streamlit-oauth
 python-pptx
 streamlit-image-comparison
+rembg
+onnxruntime
