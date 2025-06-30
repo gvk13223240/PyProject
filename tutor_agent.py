@@ -16,11 +16,17 @@ Topic: {topic}
 Question: {question}
 
 Instructions:
-- Break down the solution into logical, numbered steps
-- Explain each step clearly
-- Use simple math formatting
-- Do not skip steps
+- Solve the system using Gauss-Jordan Elimination
+- Use exact values (fractions) where possible
+- Do not guess or skip steps
+- Clearly write all intermediate steps
+- At the end, return both the exact solution (fractions) and decimal approximations
 - End with: ✅ Final Answer: ...
+
+Example format:
+x = ..., y = ..., z = ... (exact)
+x ≈ ..., y ≈ ..., z ≈ ... (approximate)
+"""
 
 Respond clearly:
 """
