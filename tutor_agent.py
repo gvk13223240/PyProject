@@ -1,3 +1,4 @@
+# tutor_agent.py
 import os
 import requests
 from dotenv import load_dotenv
@@ -16,10 +17,9 @@ Topic: {topic}
 Question: {question}
 
 Instructions:
-- Solve this math problem using the most appropriate method
-- Explain each step clearly and logically
-- Use fractions when needed
-- At the end, give both the exact solution (fractions) and decimal approximations if applicable
+- Break the problem into logical steps
+- Explain clearly without skipping steps
+- Use exact math formatting where helpful
 - End with: ✅ Final Answer: ...
 """
 
@@ -39,17 +39,6 @@ Instructions:
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()
         json_data = response.json()
-
-        if "choices" not in json_data or not json_data["choices"]:
-            print("⚠️ Unexpected response structure:", json_data)
-            return "❌ Error: Unexpected response format from tutor agent."
-
         return json_data["choices"][0]["message"]["content"]
-
-    except requests.exceptions.RequestException as req_err:
-        print("❌ Request failed:", req_err)
-        return "❌ Error: Could not connect to the tutor service."
-
-    except Exception as err:
-        print("❌ Unexpected error:", err)
-        return "❌ Error: An unexpected error occurred in the tutor agent."
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
