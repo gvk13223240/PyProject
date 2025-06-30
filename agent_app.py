@@ -28,8 +28,8 @@ def solve_symbolic_system(lines):
 # UI
 st.set_page_config("📘 Smart Math Tutor", layout="centered")
 st.title("🧠 Smart Math Tutor")
-
-question = st.text_area("📌 Enter a math question or system of equations:")
+st.write("#Created by - gvk13223240")
+question = st.text_area("📌 Enter a math question:")
 
 if st.button("🔍 Solve"):
     user_input = question.strip().split("\n")
