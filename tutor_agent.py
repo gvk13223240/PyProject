@@ -1,44 +1,50 @@
-# tutor_agent.py
-import os
-import requests
-from dotenv import load_dotenv
+import re
+from sympy import symbols, Eq, solve
+from sympy.parsing.sympy_parser import parse_expr
 
-load_dotenv()
-api_key = os.getenv("OPENROUTER_API_KEY")
+# Automatically inserts '*' for implicit multiplication like 2x → 2*x
+def insert_implicit_multiplication(expr):
+    expr = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', expr)       # e.g. 2x → 2*x
+    expr = re.sub(r'([a-zA-Z])([a-zA-Z])', r'\1*\2', expr) # e.g. xy → x*y
+    return expr
 
+# Solve system of equations
 def get_math_answer(topic, question):
-    if not api_key:
-        return "❌ Error: OPENROUTER_API_KEY is not set."
-
-    prompt = f"""
-You are a highly accurate, patient, and step-by-step math tutor.
-
-Topic: {topic}
-Question: {question}
-
-Instructions:
-- Break the problem into logical steps
-- Explain clearly without skipping steps
-- Use exact math formatting where helpful
-- End with: ✅ Final Answer: ...
-"""
-
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "mistralai/mixtral-8x7b-instruct",
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
-    }
+    if topic.lower() != "linear algebra":
+        return "❌ Only 'Linear Algebra' topic is supported for symbolic solving."
 
     try:
-        response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        json_data = response.json()
-        return json_data["choices"][0]["message"]["content"]
+        # Split input into lines and preprocess each equation
+        lines = [line.strip() for line in question.strip().split('\n') if line.strip()]
+        if not lines:
+            return "❌ Error: No valid equations found."
+
+        x, y, z = symbols('x y z')
+        eqs = []
+        for line in lines:
+            line = insert_implicit_multiplication(line)
+            left, right = line.split('=')
+            eq = Eq(parse_expr(left.strip()), parse_expr(right.strip()))
+            eqs.append(eq)
+
+        sol = solve(eqs, (x, y, z), dict=True)
+        if not sol:
+            return "❌ No solution or infinite solutions."
+
+        sol = sol[0]  # Only one solution expected
+        exact = ', '.join([f"{var} = {sol[var]}" for var in (x, y, z)])
+        approx = ', '.join([f"{var} ≈ {round(sol[var].evalf(), 4)}" for var in (x, y, z)])
+
+        return f"""
+### 🧠 Solved using SymPy:
+**Exact Solution:**  
+{exact}
+
+**Decimal Approximation:**  
+{approx}
+
+✅ Final Answer.
+"""
+
     except Exception as e:
-        return f"❌ Error: {str(e)}"
+        return f"❌ An error occurred: {e}"
