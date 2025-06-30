@@ -5,123 +5,96 @@ from tutor_agent import get_math_answer
 st.set_page_config("📘 Math Tutor Bot", layout="centered")
 st.title("📘 Math Tutor App")
 
-# Sidebar topic selection
-topic = st.sidebar.selectbox("Choose a topic:", [
-    "General Math Tutor",
-    "Matrix Operations"
+math_topic = st.selectbox("Choose a math area:", [
+    "Arithmetic", "Algebra", "Geometry", "Trigonometry", "Calculus", "Linear Algebra", "Word Problems", "Matrix Operations"
 ])
 
-st.markdown("Ask a question based on the selected topic.")
-
-# 🔷 PART 1: GENERAL MATH SOLVER
-if topic == "General Math Tutor":
-    st.subheader("📌 Enter your math question:")
-
-    math_topic = st.selectbox("Choose a math area:", [
-        "Arithmetic", "Algebra", "Geometry", "Trigonometry", "Calculus", "Linear Algebra", "Word Problems"
-    ])
+# General Tutor
+if math_topic != "Matrix Operations":
+    st.subheader("📌 Enter your question:")
     question = st.text_area("Your Question:")
 
     if st.button("🧠 Solve It"):
         if not question.strip():
             st.warning("Please enter a question.")
         else:
-            with st.spinner("Thinking..."):
+            with st.spinner("Solving..."):
                 result = get_math_answer(math_topic, question)
             st.success("✅ Here's your step-by-step solution:")
             st.markdown("### 🧮 Solution:")
             st.write(result)
 
-# 🔷 PART 2: MATRIX OPERATIONS
-elif topic == "Matrix Operations":
-    st.subheader("🧮 Matrix Operations")
+# Matrix Operations Section
+else:
+    st.subheader("🧮 Matrix Operation Solver")
 
     operation = st.selectbox("Choose matrix operation:", [
         "Determinant", "Inverse", "Transpose", "Rank", "Trace", "Multiplication", "Eigenvalues & Eigenvectors"
     ])
 
-    # Input Matrix A
-    st.subheader("🔷 Matrix A")
-    rows_a = st.number_input("Number of rows (Matrix A)", 1, 5, value=2, key="rows_a")
-    cols_a = st.number_input("Number of columns (Matrix A)", 1, 5, value=2, key="cols_a")
+    # Input for Matrix A
+    st.markdown("### 🔹 Matrix A")
+    rows_a = st.number_input("Rows (A)", 1, 5, 2)
+    cols_a = st.number_input("Cols (A)", 1, 5, 2)
 
     matrix_a = []
     for i in range(rows_a):
-        row = []
         cols = st.columns(cols_a)
-        for j in range(cols_a):
-            val = cols[j].number_input(f"A[{i+1},{j+1}]", value=0.0, key=f"a_{i}_{j}")
-            row.append(val)
+        row = [cols[j].number_input(f"A[{i+1},{j+1}]", value=0.0, key=f"a_{i}_{j}") for j in range(cols_a)]
         matrix_a.append(row)
     A = np.array(matrix_a)
 
-    # Optional Matrix B
+    # Optional Matrix B for Multiplication
     if operation == "Multiplication":
-        st.subheader("🔷 Matrix B")
-        rows_b = cols_a
-        cols_b = st.number_input("Number of columns (Matrix B)", 1, 5, value=2, key="cols_b")
+        st.markdown("### 🔹 Matrix B")
+        cols_b = st.number_input("Cols (B)", 1, 5, 2)
         matrix_b = []
-        for i in range(rows_b):
-            row = []
+        for i in range(cols_a):
             cols = st.columns(cols_b)
-            for j in range(cols_b):
-                val = cols[j].number_input(f"B[{i+1},{j+1}]", value=0.0, key=f"b_{i}_{j}")
-                row.append(val)
+            row = [cols[j].number_input(f"B[{i+1},{j+1}]", value=0.0, key=f"b_{i}_{j}") for j in range(cols_b)]
             matrix_b.append(row)
         B = np.array(matrix_b)
 
-    # Compute Button
-    if st.button("🔍 Compute"):
+    # Compute button
+    if st.button("🔍 Compute Matrix Result"):
         try:
             if operation == "Determinant":
                 if rows_a != cols_a:
-                    st.error("Matrix must be square for determinant.")
+                    st.error("Matrix must be square.")
                 else:
-                    det = np.linalg.det(A)
-                    st.success(f"✅ Determinant: {det:.4f}")
+                    st.success(f"Determinant: {np.linalg.det(A):.4f}")
 
             elif operation == "Inverse":
                 if rows_a != cols_a:
-                    st.error("Matrix must be square for inverse.")
+                    st.error("Matrix must be square.")
                 else:
-                    inv = np.linalg.inv(A)
-                    st.success("✅ Inverse:")
-                    st.write(inv)
+                    st.write(np.linalg.inv(A))
 
             elif operation == "Transpose":
-                st.success("✅ Transpose:")
                 st.write(A.T)
 
             elif operation == "Rank":
-                rank = np.linalg.matrix_rank(A)
-                st.success(f"✅ Rank: {rank}")
+                st.success(f"Rank: {np.linalg.matrix_rank(A)}")
 
             elif operation == "Trace":
                 if rows_a != cols_a:
-                    st.error("Matrix must be square for trace.")
+                    st.error("Matrix must be square.")
                 else:
-                    tr = np.trace(A)
-                    st.success(f"✅ Trace: {tr}")
+                    st.success(f"Trace: {np.trace(A)}")
 
             elif operation == "Multiplication":
                 if A.shape[1] != B.shape[0]:
-                    st.error("Matrix A's columns must match Matrix B's rows.")
+                    st.error("Incompatible shapes for multiplication.")
                 else:
-                    result = np.dot(A, B)
-                    st.success("✅ A × B:")
-                    st.write(result)
+                    st.write(np.dot(A, B))
 
             elif operation == "Eigenvalues & Eigenvectors":
                 if rows_a != cols_a:
-                    st.error("Matrix must be square for eigen decomposition.")
+                    st.error("Matrix must be square.")
                 else:
-                    eigvals, eigvecs = np.linalg.eig(A)
-                    st.success("✅ Eigenvalues:")
-                    st.write(eigvals)
-                    st.success("✅ Eigenvectors:")
-                    st.write(eigvecs)
+                    vals, vecs = np.linalg.eig(A)
+                    st.write("Eigenvalues:", vals)
+                    st.write("Eigenvectors:", vecs)
 
-        except np.linalg.LinAlgError as e:
-            st.error(f"❌ Matrix error: {str(e)}")
         except Exception as e:
-            st.error(f"❌ Unexpected error: {str(e)}")
+            st.error(f"❌ Error: {str(e)}")
