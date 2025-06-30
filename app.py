@@ -18,6 +18,10 @@ if st.button("🧠 Solve It"):
     else:
         with st.spinner("Thinking..."):
             result = get_math_answer(topic, question)
-        st.success("Here's your step-by-step solution:")
-        st.markdown("### 🧮 Solution:")
-        st.write(result)
+        
+        if result.startswith("❌ Error:"):
+            st.error(result)
+        else:
+            st.success("Here's your step-by-step solution:")
+            st.markdown("### 🧮 Solution:")
+            st.write(result)
