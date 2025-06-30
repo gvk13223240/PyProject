@@ -1,50 +1,56 @@
-import re
-from sympy import symbols, Eq, solve
-from sympy.parsing.sympy_parser import parse_expr
+import os
+import requests
+from dotenv import load_dotenv
 
-# Automatically inserts '*' for implicit multiplication like 2x → 2*x
-def insert_implicit_multiplication(expr):
-    expr = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', expr)       # e.g. 2x → 2*x
-    expr = re.sub(r'([a-zA-Z])([a-zA-Z])', r'\1*\2', expr) # e.g. xy → x*y
-    return expr
+load_dotenv()
+api_key = os.getenv("OPENROUTER_API_KEY")
 
-# Solve system of equations
 def get_math_answer(topic, question):
-    if topic.lower() != "linear algebra":
-        return "❌ Only 'Linear Algebra' topic is supported for symbolic solving."
+    if not api_key:
+        return "❌ Error: OPENROUTER_API_KEY is not set."
 
-    try:
-        # Split input into lines and preprocess each equation
-        lines = [line.strip() for line in question.strip().split('\n') if line.strip()]
-        if not lines:
-            return "❌ Error: No valid equations found."
+    prompt = f"""
+You are a highly accurate, step-by-step math tutor.
 
-        x, y, z = symbols('x y z')
-        eqs = []
-        for line in lines:
-            line = insert_implicit_multiplication(line)
-            left, right = line.split('=')
-            eq = Eq(parse_expr(left.strip()), parse_expr(right.strip()))
-            eqs.append(eq)
+Topic: {topic}
+Question: {question}
 
-        sol = solve(eqs, (x, y, z), dict=True)
-        if not sol:
-            return "❌ No solution or infinite solutions."
+Instructions:
+- Show clear, numbered steps
+- Use exact values (fractions) where appropriate
+- Handle symbolic math if topic is Linear Algebra, Algebra, or Calculus
+- End with:
+  ✅ Final Answer (exact): ...
+  Approx: ...
 
-        sol = sol[0]  # Only one solution expected
-        exact = ', '.join([f"{var} = {sol[var]}" for var in (x, y, z)])
-        approx = ', '.join([f"{var} ≈ {round(sol[var].evalf(), 4)}" for var in (x, y, z)])
-
-        return f"""
-### 🧠 Solved using SymPy:
-**Exact Solution:**  
-{exact}
-
-**Decimal Approximation:**  
-{approx}
-
-✅ Final Answer.
+If matrix-related, determine invertibility, steps to inverse if any.
+Respond clearly:
 """
 
-    except Exception as e:
-        return f"❌ An error occurred: {e}"
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "mistralai/mixtral-8x7b-instruct",
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+
+        json_data = response.json()
+        if "choices" not in json_data or not json_data["choices"]:
+            return "❌ Error: Unexpected response format from tutor agent."
+
+        return json_data["choices"][0]["message"]["content"]
+
+    except requests.exceptions.RequestException as req_err:
+        return f"❌ Request error: {req_err}"
+
+    except Exception as err:
+        return f"❌ Unexpected error: {err}"
