@@ -1,24 +1,39 @@
 import streamlit as st
-from tutor_agent import get_math_answer
+from sympy import symbols, Eq, solve, sympify
 
-st.set_page_config("📘 Math Tutor Bot", layout="centered")
-st.write("Created by - gvk13223240")
-st.title("📐 Math Tutor Bot")
+st.set_page_config("📘 Math Tutor with SymPy", layout="centered")
+st.title("📐 Math Tutor: System Solver")
 
-st.markdown("Ask me any math question and I'll solve it step by step!")
+st.markdown("Enter a system of **three linear equations** in x, y, z.")
 
-topic = st.selectbox("Choose a math topic:", [
-    "Arithmetic", "Algebra", "Geometry", "Trigonometry", "Calculus", "Linear Systems", "Word Problems"
-])
+# Input fields for equations
+eq1_input = st.text_input("🔹 Equation 1 (e.g., x + y + z = 6)", "x + y + z = 6")
+eq2_input = st.text_input("🔹 Equation 2 (e.g., 2*x + 3*y + 5*z = 17)", "2*x + 3*y + 5*z = 17")
+eq3_input = st.text_input("🔹 Equation 3 (e.g., 4*x + 0*y + 5*z = 18)", "4*x + 0*y + 5*z = 18")
 
-question = st.text_area("📌 Enter your math question:")
+if st.button("🧠 Solve System"):
+    try:
+        # Define symbols
+        x, y, z = symbols('x y z')
+        
+        # Convert input strings to SymPy equations
+        eq1 = Eq(*map(sympify, eq1_input.split('=')))
+        eq2 = Eq(*map(sympify, eq2_input.split('=')))
+        eq3 = Eq(*map(sympify, eq3_input.split('=')))
 
-if st.button("🧠 Solve It"):
-    if not question.strip():
-        st.warning("Please enter a question.")
-    else:
-        with st.spinner("Thinking..."):
-            result = get_math_answer(topic, question)
-        st.success("Here's your step-by-step solution:")
-        st.markdown("### 🧮 Solution:")
-        st.write(result)
+        # Solve the system
+        solution = solve([eq1, eq2, eq3], (x, y, z), dict=True)
+        
+        if solution:
+            sol = solution[0]
+            st.success("✅ Exact Solution (fractions):")
+            st.write(f"x = {sol[x]}, y = {sol[y]}, z = {sol[z]}")
+
+            st.markdown("### 🔢 Decimal Approximation:")
+            st.write(f"x ≈ {float(sol[x]):.3f}, y ≈ {float(sol[y]):.3f}, z ≈ {float(sol[z]):.3f}")
+
+        else:
+            st.error("❌ No solution found. The system might be inconsistent.")
+
+    except Exception as e:
+        st.error(f"⚠️ Error parsing equations: {e}")
