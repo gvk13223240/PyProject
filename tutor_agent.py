@@ -16,19 +16,11 @@ Topic: {topic}
 Question: {question}
 
 Instructions:
-- Solve the system using Gauss-Jordan Elimination
-- Use exact values (fractions) where possible
-- Do not guess or skip steps
-- Clearly write all intermediate steps
-- At the end, return both the exact solution (fractions) and decimal approximations
+- Solve this math problem using the most appropriate method
+- Explain each step clearly and logically
+- Use fractions when needed
+- At the end, give both the exact solution (fractions) and decimal approximations if applicable
 - End with: ✅ Final Answer: ...
-
-Example format:
-x = ..., y = ..., z = ... (exact)
-x ≈ ..., y ≈ ..., z ≈ ... (approximate)
-"""
-
-Respond clearly:
 """
 
     url = "https://openrouter.ai/api/v1/chat/completions"
@@ -46,10 +38,8 @@ Respond clearly:
     try:
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()
-
         json_data = response.json()
 
-        # Defensive check for unexpected API structure
         if "choices" not in json_data or not json_data["choices"]:
             print("⚠️ Unexpected response structure:", json_data)
             return "❌ Error: Unexpected response format from tutor agent."
