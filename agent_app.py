@@ -1,44 +1,33 @@
-# app.py
 import streamlit as st
-from sympy import symbols, Eq, solve, sympify
 from tutor_agent import get_math_answer
 
-x, y, z = symbols('x y z')
+st.set_page_config(page_title="📘 Math Tutor Bot", layout="centered")
+st.title("📐 Math Tutor Bot")
+st.markdown("Ask me any math question and I'll solve it step-by-step!")
 
-def is_linear_system(lines):
-    return (
-        len(lines) == 3 and
-        all('=' in line for line in lines) and
-        all(any(var in line for var in ['x', 'y', 'z']) for line in lines)
-    )
+topics = [
+    "Arithmetic", "Algebra", "Geometry", "Trigonometry",
+    "Calculus", "Word Problems", "Linear Algebra"
+]
 
-def solve_symbolic_system(lines):
-    try:
-        equations = [Eq(*map(sympify, line.split('='))) for line in lines]
-        sol = solve(equations, (x, y, z), dict=True)
-        if not sol:
-            return "❌ No solution."
-        s = sol[0]
-        result = f"✅ Final Answer (exact): x = {s[x]}, y = {s[y]}, z = {s[z]}\n\n"
-        result += f"Approx: x ≈ {float(s[x]):.3f}, y ≈ {float(s[y]):.3f}, z ≈ {float(s[z]):.3f}"
-        return result
-    except Exception as e:
-        return f"⚠️ Could not parse system: {e}"
+# Default to "Linear Algebra" if matrix-like text is detected
+def detect_topic_from_question(q):
+    if "matrix" in q.lower() or "[" in q or "]" in q:
+        return "Linear Algebra"
+    return st.session_state.get("topic", topics[0])
 
-# UI
-st.set_page_config("📘 Smart Math Tutor", layout="centered")
-st.title("🧠 Smart Math Tutor")
-st.write("#Created by - gvk13223240")
-question = st.text_area("📌 Enter a math question:")
+# UI elements
+topic = st.selectbox("Choose a math topic:", topics, key="topic")
+question = st.text_area("📌 Enter your math question:")
 
-if st.button("🔍 Solve"):
-    user_input = question.strip().split("\n")
-    if is_linear_system(user_input):
-        with st.spinner("Solving system using exact math..."):
-            result = solve_symbolic_system(user_input)
+if st.button("🧠 Solve It"):
+    if not question.strip():
+        st.warning("Please enter a math question.")
     else:
-        with st.spinner("Asking AI tutor..."):
-            result = get_math_answer("General", question)
+        detected_topic = detect_topic_from_question(question)
+        with st.spinner(f"Solving with topic: {detected_topic}..."):
+            result = get_math_answer(detected_topic, question)
 
-    st.markdown("### 🧮 Solution:")
-    st.write(result)
+        st.success("Here's your step-by-step solution:")
+        st.markdown("### 🧮 Solution:")
+        st.write(result)
