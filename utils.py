@@ -1,7 +1,4 @@
-# utils.py
-
 import sqlite3
-import sqlparse
 import re
 
 def extract_schema(conn):
@@ -49,9 +46,11 @@ def generate_mermaid_code(schema, foreign_keys):
 
     for from_table, from_col, to_table, to_col in foreign_keys:
         lines.append(f"    {to_table} ||--o{{ {from_table} : {from_col}")
-    return "\n".join(lines)
+    
+    return "\\n".join(lines)
 
 def parse_sql_schema(sql_text):
+    import sqlparse
     statements = sqlparse.split(sql_text)
     schema = {}
     foreign_keys = []
@@ -59,25 +58,21 @@ def parse_sql_schema(sql_text):
     for stmt in statements:
         stmt_clean = stmt.strip()
         if stmt_clean.upper().startswith("CREATE TABLE"):
-            table_match = re.search(r'CREATE TABLE\s+[\"`]?(?P<name>\w+)[\"`]?\s*\((?P<cols>.*?)\)', stmt_clean, re.IGNORECASE | re.DOTALL)
+            table_match = re.search(r'CREATE TABLE\\s+["`]?([\\w]+)["`]?[\\s\\(]+', stmt_clean, re.IGNORECASE)
             if table_match:
-                table_name = table_match.group("name")
-                column_block = table_match.group("cols")
+                table_name = table_match.group(1)
                 columns = []
-                for line in column_block.split(','):
-                    col_def = line.strip()
-                    if col_def.upper().startswith("FOREIGN KEY"):
-                        fk_match = re.search(
-                            r'FOREIGN KEY\s*\(["`]?(\w+)["`]?\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)',
-                            col_def, re.IGNORECASE)
+                column_lines = stmt_clean.split('(')[1].rsplit(')', 1)[0].split(',')
+                for col in column_lines:
+                    col = col.strip()
+                    if col.upper().startswith(\"FOREIGN KEY\"):
+                        fk_match = re.search(r'FOREIGN KEY\\s*\\((\\w+)\\)\\s*REFERENCES\\s*(\\w+)\\s*\\((\\w+)\\)', col, re.IGNORECASE)
                         if fk_match:
-                            from_col = fk_match.group(1)
-                            to_table = fk_match.group(2)
-                            to_col = fk_match.group(3)
-                            foreign_keys.append((table_name, from_col, to_table, to_col))
-                    elif col_def and not col_def.upper().startswith("PRIMARY KEY"):
-                        col_parts = col_def.split()
-                        if len(col_parts) >= 2:
-                            columns.append((col_parts[0], col_parts[1]))
+                            foreign_keys.append((table_name, fk_match.group(1), fk_match.group(2), fk_match.group(3)))
+                    elif \"PRIMARY KEY\" not in col.upper():
+                        parts = col.split()
+                        if len(parts) >= 2:
+                            columns.append((parts[0], parts[1]))
                 schema[table_name] = columns
+
     return schema, foreign_keys
