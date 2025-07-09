@@ -10,7 +10,7 @@ st.title("\U0001F4D8 SQLite ER Diagram Generator")
 st.markdown(
     """
     <div style='text-align: right; font-size: 0.9em; color: gray; margin-top: -20px;'>
-        Built with by <a href='https://www.linkedin.com/in/gvk-13vk' target='_blank'>Garlapati Vamshi Krishna</a>
+        Built by <a href='https://www.linkedin.com/in/gvk-13vk' target='_blank'>Garlapati Vamshi Krishna</a>
     </div>
     """,
     unsafe_allow_html=True
