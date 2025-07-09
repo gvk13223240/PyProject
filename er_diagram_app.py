@@ -20,7 +20,7 @@ def render_mermaid_in_browser(mermaid_code):
     <script>
         mermaid.initialize({{
             startOnLoad: true,
-            theme: document.body.classList.contains('light') ? 'default' : 'dark'
+            theme: document.body.classList.contains('light') ? 'default' : 'default'
         }});
 
         function downloadPNG() {{
