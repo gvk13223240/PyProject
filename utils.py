@@ -103,3 +103,10 @@ def run_custom_query(db_path, query):
         return df
     finally:
         conn.close()
+
+def get_table_data(db_path, table_name):
+    conn = sqlite3.connect(db_path)
+    try:
+        return pd.read_sql_query(f"SELECT * FROM {table_name} LIMIT 100", conn)
+    finally:
+        conn.close()
