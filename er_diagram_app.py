@@ -9,7 +9,7 @@ uploaded_file = st.file_uploader(
     "Upload a SQLite (.sqlite, .db) or SQL (.sql) file", 
     type=["sqlite", "db", "sql"]
 )
-
+theme = st.radio("Choose diagram theme", options=["Light", "Dark"], index=0)
 def render_mermaid_in_browser(mermaid_code):
     mermaid_html = f"""
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
@@ -28,7 +28,7 @@ def render_mermaid_in_browser(mermaid_code):
     <script>
         mermaid.initialize({{
             startOnLoad: true,
-            theme: document.body.classList.contains('light') ? 'default' : 'dark'
+            theme: document.body.classList.contains('light') ? 'default' : theme
         }});
 
         function downloadPNG() {{
