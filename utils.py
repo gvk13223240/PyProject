@@ -1,8 +1,13 @@
 import sqlite3
-import re
 import sqlparse
+import re
+import os
 
-def extract_schema(conn):
+def extract_schema(db_path_or_conn):
+    if isinstance(db_path_or_conn, str):
+        conn = sqlite3.connect(db_path_or_conn)
+    else:
+        conn = db_path_or_conn
     cursor = conn.cursor()
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
@@ -23,7 +28,6 @@ def extract_schema(conn):
 
     return schema, foreign_keys
 
-# SQL to Mermaid type mapper
 def map_sqlite_type(sqlite_type: str) -> str:
     t = sqlite_type.upper()
     if "INT" in t:
@@ -39,7 +43,6 @@ def map_sqlite_type(sqlite_type: str) -> str:
     else:
         return "NVARCHAR"
 
-# Convert schema + foreign keys to Mermaid ERD code
 def generate_mermaid_code(schema, foreign_keys):
     lines = ["erDiagram"]
     for table, columns in schema.items():
@@ -50,10 +53,9 @@ def generate_mermaid_code(schema, foreign_keys):
 
     for from_table, from_col, to_table, to_col in foreign_keys:
         lines.append(f"    {to_table} ||--o{{ {from_table} : {from_col}")
-
+    
     return "\n".join(lines)
 
-# Parse raw SQL schema into table definitions and FKs
 def parse_sql_schema(sql_text):
     statements = sqlparse.split(sql_text)
     schema = {}
@@ -62,10 +64,7 @@ def parse_sql_schema(sql_text):
     for stmt in statements:
         stmt_clean = stmt.strip()
         if stmt_clean.upper().startswith("CREATE TABLE"):
-            table_match = re.search(
-                r'CREATE TABLE\s+["`]?(\w+)["`]?\s*\((.*?)\);?', 
-                stmt_clean, re.IGNORECASE | re.DOTALL
-            )
+            table_match = re.search(r'CREATE TABLE\s+["`]?(\w+)["`]?\s*\((.*?)\);?', stmt_clean, re.IGNORECASE | re.DOTALL)
             if table_match:
                 table_name = table_match.group(1)
                 column_block = table_match.group(2)
@@ -75,7 +74,7 @@ def parse_sql_schema(sql_text):
                     col_def = line.strip()
                     if col_def.upper().startswith("FOREIGN KEY"):
                         fk_match = re.search(
-                            r'FOREIGN KEY\s*\(["`]?(\w+)["`]?\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)',
+                            r'FOREIGN KEY\s*\(["`]?(\w+)["`]?\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)', 
                             col_def, re.IGNORECASE
                         )
                         if fk_match:
@@ -89,5 +88,4 @@ def parse_sql_schema(sql_text):
                             columns.append((col_parts[0], col_parts[1]))
 
                 schema[table_name] = columns
-
     return schema, foreign_keys
