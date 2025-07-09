@@ -1,12 +1,10 @@
+# Save as utils.py
 import sqlite3
 import sqlparse
 import re
-import pandas as pd
 
-def extract_schema(db_path):
-    conn = sqlite3.connect(db_path)
+def extract_schema(conn):
     cursor = conn.cursor()
-
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = [row[0] for row in cursor.fetchall()]
 
@@ -23,7 +21,6 @@ def extract_schema(db_path):
         for fk in fks:
             foreign_keys.append((table, fk[3], fk[2], fk[4]))
 
-    conn.close()
     return schema, foreign_keys
 
 def map_sqlite_type(sqlite_type: str) -> str:
@@ -48,11 +45,9 @@ def generate_mermaid_code(schema, foreign_keys):
         for name, dtype in columns:
             lines.append(f"        {map_sqlite_type(dtype)} {name}")
         lines.append("    }")
-
     for from_table, from_col, to_table, to_col in foreign_keys:
         lines.append(f"    {to_table} ||--o{{ {from_table} : {from_col}")
-
-    return "\n".join(lines)
+    return "\\n".join(lines)
 
 def parse_sql_schema(sql_text):
     statements = sqlparse.split(sql_text)
@@ -62,19 +57,19 @@ def parse_sql_schema(sql_text):
     for stmt in statements:
         stmt_clean = stmt.strip()
         if stmt_clean.upper().startswith("CREATE TABLE"):
-            table_match = re.search(r'CREATE TABLE\s+["`]?(\w+)["`]?\s*\((.*?)\);?', stmt_clean, re.IGNORECASE | re.DOTALL)
+            table_match = re.search(r'CREATE TABLE\\s+[\"`]?(\\w+)[\"`]?
+                                     \\s*\\((.*?)\\);?', stmt_clean, re.IGNORECASE | re.DOTALL)
             if table_match:
                 table_name = table_match.group(1)
                 column_block = table_match.group(2)
-
                 columns = []
                 for line in column_block.split(','):
                     col_def = line.strip()
                     if col_def.upper().startswith("FOREIGN KEY"):
                         fk_match = re.search(
-                            r'FOREIGN KEY\s*\(["`]?(\w+)["`]?\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)',
-                            col_def, re.IGNORECASE
-                        )
+                            r'FOREIGN KEY\\s*\\([\"`]?(\\w+)[\"`]?
+                             \\)\\s*REFERENCES\\s+[\"`]?(\\w+)[\"`]?
+                             \\s*\\([\"`]?(\\w+)[\"`]?\\)', col_def, re.IGNORECASE)
                         if fk_match:
                             from_col = fk_match.group(1)
                             to_table = fk_match.group(2)
@@ -84,29 +79,5 @@ def parse_sql_schema(sql_text):
                         col_parts = col_def.split()
                         if len(col_parts) >= 2:
                             columns.append((col_parts[0], col_parts[1]))
-
                 schema[table_name] = columns
     return schema, foreign_keys
-
-def preview_db_tables(db_path):
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
-    tables = [row[0] for row in cursor.fetchall()]
-    conn.close()
-    return tables
-
-def run_custom_query(db_path, query):
-    conn = sqlite3.connect(db_path)
-    try:
-        df = pd.read_sql_query(query, conn)
-        return df
-    finally:
-        conn.close()
-
-def get_table_data(db_path, table_name):
-    conn = sqlite3.connect(db_path)
-    try:
-        return pd.read_sql_query(f"SELECT * FROM {table_name} LIMIT 100", conn)
-    finally:
-        conn.close()
