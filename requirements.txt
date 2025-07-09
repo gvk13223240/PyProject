@@ -2,14 +2,13 @@ streamlit
 opencv-python-headless
 numpy
 Pillow
-streamlit
 matplotlib
 sounddevice
 scipy
-streamlit-oauth
 python-dotenv
 streamlit-oauth
 python-pptx
 streamlit-image-comparison
 rembg
 onnxruntime
+sqlparse
