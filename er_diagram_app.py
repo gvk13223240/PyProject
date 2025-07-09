@@ -1,52 +1,81 @@
 import streamlit as st
-import sqlite3
-from utils import extract_schema, generate_mermaid_code, parse_sql_schema, preview_table_content, infer_foreign_keys
+from utils import extract_schema, generate_mermaid_code, parse_sql_schema
 
-# ---------- Helper to write DB file from SQL ----------
-def create_db_from_sql(sql_text, db_path="temp_live.db"):
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.executescript(sql_text)
-    conn.commit()
-    conn.close()
-    return db_path
+st.set_page_config(page_title="📘 SQLite ER Diagram Generator", layout="wide")
+st.title("📘 SQLite ER Diagram Generator")
 
-# ---------- Main Streamlit app ----------
-st.set_page_config(page_title="📘 SQLite ER Diagram + Live SQL Explorer", layout="wide")
-st.title("📘 SQLite ER Diagram + Live SQL Explorer")
-
-# Theme choice
 theme = st.radio("Choose diagram theme", options=["Light", "Dark"], index=0)
 
-# State to keep DB path for live sql or uploaded file
-if "db_path" not in st.session_state:
-    st.session_state.db_path = None
+def render_mermaid_in_browser(mermaid_code, selected_theme):
+    js_theme = "default" if selected_theme == "Light" else "dark"
 
-# Toggle inferred FK detection
-show_inferred = st.checkbox("🔍 Show inferred foreign keys", value=True)
+    mermaid_html = f"""
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-# --- Tabs ---
-tab_upload, tab_live_sql, tab_mermaid, tab_sql_runner = st.tabs(
-    ["📂 Upload DB/SQL File", "🧠 Live SQL Editor", "🛠️ Mermaid Editor", "📝 Run SQL Query"]
-)
+    <div style="margin-bottom: 1em;">
+        <button onclick="downloadPNG()">⬇️ Download PNG</button>
+        <button onclick="downloadPDF()">⬇️ Download PDF</button>
+    </div>
 
-# -------- Tab 1: Upload --------
-with tab_upload:
-    uploaded_file = st.file_uploader("Upload SQLite (.sqlite, .db) or SQL (.sql) file", type=["sqlite", "db", "sql"])
+    <div id="mermaid-container" class="mermaid">
+        {mermaid_code}
+    </div>
+
+    <script>
+        mermaid.initialize({{
+            startOnLoad: true,
+            theme: "{js_theme}"
+        }});
+
+        function downloadPNG() {{
+            const container = document.getElementById("mermaid-container");
+            html2canvas(container).then(canvas => {{
+                const link = document.createElement('a');
+                link.download = 'er_diagram.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }});
+        }}
+
+        function downloadPDF() {{
+            const container = document.getElementById("mermaid-container");
+            html2canvas(container).then(canvas => {{
+                const {{ jsPDF }} = window.jspdf;
+                const pdf = new jsPDF();
+                const imgData = canvas.toDataURL('image/png');
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save('er_diagram.pdf');
+            }});
+        }}
+    </script>
+    """
+    import streamlit.components.v1 as components
+    components.html(mermaid_html, height=1000, scrolling=True)
+
+# ----------------------------
+# Tabs
+# ----------------------------
+tab1, tab2, tab3 = st.tabs(["📂 Upload File", "🧠 Live SQL Editor", "🛠️ Manual Mermaid Editor"])
+
+# -------- Tab 1: Upload File --------
+with tab1:
+    uploaded_file = st.file_uploader("Upload a SQLite (.sqlite, .db) or SQL (.sql) file", type=["sqlite", "db", "sql"])
+
     if uploaded_file:
         try:
             if uploaded_file.name.endswith(".sql"):
                 sql_text = uploaded_file.read().decode("utf-8")
-                db_path = create_db_from_sql(sql_text)
+                schema, foreign_keys = parse_sql_schema(sql_text)
             else:
-                db_path = f"uploaded_{uploaded_file.name}"
+                db_path = "uploaded_db.sqlite"
                 with open(db_path, "wb") as f:
                     f.write(uploaded_file.read())
-            st.session_state.db_path = db_path
-
-            schema, foreign_keys = extract_schema(db_path)
-            if show_inferred:
-                foreign_keys += infer_foreign_keys(schema, foreign_keys)
+                schema, foreign_keys = extract_schema(db_path)
 
             mermaid_code = generate_mermaid_code(schema, foreign_keys)
 
@@ -54,107 +83,45 @@ with tab_upload:
             st.code(mermaid_code, language="mermaid")
 
             st.subheader("📊 ER Diagram")
-            render_mermaid(mermaid_code, theme)
+            render_mermaid_in_browser(mermaid_code, theme)
 
-            st.subheader("📂 Tables & Sample Data")
-            for table in schema.keys():
-                st.write(f"**Table: {table}**")
-                data = preview_table_content(db_path, table)
-                if data:
-                    st.dataframe(data)
-                else:
-                    st.write("No rows found.")
         except Exception as e:
-            st.error(f"❌ Failed to process file: {e}")
+            st.error(f"❌ Failed to render diagram.\n\n{e}")
 
 # -------- Tab 2: Live SQL Editor --------
-with tab_live_sql:
-    sql_input = st.text_area("📝 Enter CREATE TABLE SQL statements", height=300, key="live_sql")
-    if st.button("▶️ Build DB & Visualize", key="build_live"):
+with tab2:
+    sql_input = st.text_area("📝 Paste your CREATE TABLE SQL statements", height=300)
+
+    if sql_input.strip():
         try:
-            if sql_input.strip():
-                db_path = create_db_from_sql(sql_input)
-                st.session_state.db_path = db_path
+            schema, foreign_keys = parse_sql_schema(sql_input)
+            mermaid_code = generate_mermaid_code(schema, foreign_keys)
 
-                schema, foreign_keys = extract_schema(db_path)
-                if show_inferred:
-                    foreign_keys += infer_foreign_keys(schema, foreign_keys)
+            st.subheader("📋 Mermaid Code")
+            st.code(mermaid_code, language="mermaid")
 
-                mermaid_code = generate_mermaid_code(schema, foreign_keys)
+            st.subheader("📊 ER Diagram from SQL")
+            render_mermaid_in_browser(mermaid_code, theme)
 
-                st.subheader("📋 Mermaid Code")
-                st.code(mermaid_code, language="mermaid")
-
-                st.subheader("📊 ER Diagram")
-                render_mermaid(mermaid_code, theme)
-
-                st.subheader("📂 Tables & Sample Data")
-                for table in schema.keys():
-                    st.write(f"**Table: {table}**")
-                    data = preview_table_content(db_path, table)
-                    if data:
-                        st.dataframe(data)
-                    else:
-                        st.write("No rows found.")
-            else:
-                st.warning("Please enter some CREATE TABLE SQL statements.")
         except Exception as e:
-            st.error(f"❌ Error building DB: {e}")
+            st.error(f"❌ Failed to parse SQL.\n\n{e}")
 
-# -------- Tab 3: Mermaid Editor --------
-with tab_mermaid:
+# -------- Tab 3: Manual Mermaid Editor --------
+with tab3:
     default_code = """erDiagram
-CUSTOMER {
-    INTEGER id
-    NVARCHAR name
-    NVARCHAR email
-}
-ORDER {
-    INTEGER id
-    INTEGER customer_id
-    DATETIME date
-}
-CUSTOMER ||--o{ ORDER : customer_id
-"""
-    custom_mermaid = st.text_area("✏️ Edit Mermaid code", value=default_code, height=300, key="mermaid_edit")
-
-    if st.button("🔄 Render Mermaid Diagram", key="render_mermaid"):
-        render_mermaid(custom_mermaid, theme)
-
-# -------- Tab 4: SQL Runner --------
-with tab_sql_runner:
-    if st.session_state.db_path is None:
-        st.warning("Upload or build a database first to run queries.")
-    else:
-        query = st.text_area("Write any SQL query here (e.g. SELECT * FROM table)", height=200)
-        if st.button("▶️ Run SQL Query"):
-            try:
-                conn = sqlite3.connect(st.session_state.db_path)
-                cursor = conn.cursor()
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                columns = [desc[0] for desc in cursor.description] if cursor.description else []
-                conn.commit()
-                conn.close()
-
-                if rows:
-                    st.dataframe([dict(zip(columns, row)) for row in rows])
-                else:
-                    st.write("No results to display.")
-            except Exception as e:
-                st.error(f"❌ Query failed: {e}")
-
-# -------- Mermaid rendering helper --------
-def render_mermaid(mermaid_code, selected_theme):
-    js_theme = "default" if selected_theme == "Light" else "dark"
-    mermaid_html = f"""
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-    <div class="mermaid" id="mermaid-container">
-    {mermaid_code}
-    </div>
-    <script>
-    mermaid.initialize({{startOnLoad:true, theme:"{js_theme}"}});
-    </script>
+    CUSTOMER {
+        INTEGER id
+        NVARCHAR name
+        NVARCHAR email
+    }
+    ORDER {
+        INTEGER id
+        INTEGER customer_id
+        DATETIME date
+    }
+    CUSTOMER ||--o{ ORDER : customer_id
     """
-    import streamlit.components.v1 as components
-    components.html(mermaid_html, height=700, scrolling=True)
+    custom_mermaid = st.text_area("✏️ Edit Mermaid code directly", value=default_code, height=300)
+
+    if st.button("🔄 Render Custom Diagram"):
+        render_mermaid_in_browser(custom_mermaid, theme)
