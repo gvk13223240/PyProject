@@ -130,8 +130,9 @@ with tab2:
             st.error(f"❌ Error executing SQL:\n\n{e}")
 
 # -------- Tab 3: Manual Mermaid Editor --------
+# -------- Tab 3: Manual Mermaid Editor --------
 with tab3:
-    default_mermaid = \"\"\"erDiagram
+    default_mermaid = """erDiagram
     CUSTOMER {
         INTEGER id
         NVARCHAR name
@@ -143,7 +144,7 @@ with tab3:
         DATETIME date
     }
     CUSTOMER ||--o{ ORDER : customer_id
-    \"\"\"
+    """
     custom_code = st.text_area("✏️ Edit Mermaid code manually", value=default_mermaid, height=300)
 
     if st.button("🔄 Render Custom Mermaid"):
