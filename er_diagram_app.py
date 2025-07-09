@@ -1,7 +1,6 @@
 import streamlit as st
 import os
-from utils import extract_schema, generate_mermaid_code, save_mermaid_file
-import streamlit.components.v1 as components
+from utils import extract_schema, generate_mermaid_code
 
 st.set_page_config(page_title="📘 SQLite ER Diagram Generator", layout="wide")
 st.title("📘 SQLite ER Diagram Generator")
@@ -11,14 +10,32 @@ uploaded_file = st.file_uploader("Upload a SQLite (.sqlite or .db) file", type=[
 def render_mermaid_in_browser(mermaid_code):
     mermaid_html = f"""
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-    <div class="mermaid">
-    {mermaid_code}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <button onclick="downloadPNG()">⬇️ Download as PNG</button>
+    <div id="mermaid-container" class="mermaid">
+        {mermaid_code}
     </div>
+
     <script>
-        mermaid.initialize({{ startOnLoad: true }});
+        mermaid.initialize({{
+            startOnLoad: true,
+            theme: document.body.classList.contains('light') ? 'default' : 'dark'
+        }});
+
+        function downloadPNG() {{
+            const container = document.getElementById("mermaid-container");
+            html2canvas(container).then(canvas => {{
+                const link = document.createElement('a');
+                link.download = 'er_diagram.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }});
+        }}
     </script>
     """
-    components.html(mermaid_html, height=800, scrolling=True)
+    import streamlit.components.v1 as components
+    components.html(mermaid_html, height=1000, scrolling=True)
 
 if uploaded_file:
     db_path = "uploaded_db.sqlite"
@@ -32,13 +49,6 @@ if uploaded_file:
         st.subheader("📋 Mermaid Code")
         st.code(mermaid_code, language="mermaid")
 
-        # Save .mmd file and provide download
-        mmd_path = "diagrams/diagram.mmd"
-        save_mermaid_file(mermaid_code, mmd_path)
-        with open(mmd_path, "rb") as f:
-            st.download_button("⬇️ Download Mermaid File", f, file_name="er_diagram.mmd")
-
-        # Render Mermaid diagram using JS in browser
         st.subheader("📊 ER Diagram")
         render_mermaid_in_browser(mermaid_code)
 
