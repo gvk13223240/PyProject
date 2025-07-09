@@ -1,4 +1,5 @@
 import streamlit as st
+import sqlite3 
 from utils import (
     extract_schema,
     generate_mermaid_code,
