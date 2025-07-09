@@ -1,57 +1,38 @@
 import streamlit as st
-import sqlite3
-import os
-import sqlparse
-import re
-import pandas as pd
+import os, re, sqlite3, pandas as pd
 from utils import extract_schema, generate_mermaid_code, parse_sql_schema
+import sqlparse
+from pathlib import Path
 
 st.set_page_config(page_title="📘 SQLite ER Diagram Generator", layout="wide")
 st.title("📘 SQLite ER Diagram Generator")
-st.caption("Created by Garlapati Vamshi Krishna — [LinkedIn](https://www.linkedin.com/in/gvk-13vk)")
 
-# Use in-memory DB that resets on page refresh
-conn = sqlite3.connect(":memory:")
+theme = st.radio("Choose diagram theme", ["Light", "Dark"], horizontal=True)
 
-# Theme selector
-theme = st.radio("Choose diagram theme", options=["Light", "Dark"], index=0)
-
+# 🧠 Mermaid Renderer
 def render_mermaid_in_browser(mermaid_code, selected_theme):
     js_theme = "default" if selected_theme == "Light" else "dark"
-
     mermaid_html = f"""
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
     <div style="margin-bottom: 1em;">
         <button onclick="downloadPNG()">⬇️ Download PNG</button>
         <button onclick="downloadPDF()">⬇️ Download PDF</button>
     </div>
-
-    <div id="mermaid-container" class="mermaid">
-        {mermaid_code}
-    </div>
-
+    <div id="mermaid-container" class="mermaid">{mermaid_code}</div>
     <script>
-        mermaid.initialize({{
-            startOnLoad: true,
-            theme: "{js_theme}"
-        }});
-
+        mermaid.initialize({{ startOnLoad: true, theme: "{js_theme}" }});
         function downloadPNG() {{
-            const container = document.getElementById("mermaid-container");
-            html2canvas(container).then(canvas => {{
+            html2canvas(document.getElementById("mermaid-container")).then(canvas => {{
                 const link = document.createElement('a');
                 link.download = 'er_diagram.png';
                 link.href = canvas.toDataURL();
                 link.click();
             }});
         }}
-
         function downloadPDF() {{
-            const container = document.getElementById("mermaid-container");
-            html2canvas(container).then(canvas => {{
+            html2canvas(document.getElementById("mermaid-container")).then(canvas => {{
                 const {{ jsPDF }} = window.jspdf;
                 const pdf = new jsPDF();
                 const imgData = canvas.toDataURL('image/png');
@@ -64,116 +45,142 @@ def render_mermaid_in_browser(mermaid_code, selected_theme):
         }}
     </script>
     """
-    import streamlit.components.v1 as components
-    components.html(mermaid_html, height=1000, scrolling=True)
+    st.components.v1.html(mermaid_html, height=1000, scrolling=True)
 
-# Tabs
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📂 Upload File", 
-    "🧠 Live SQL Editor", 
-    "🛠️ Manual Mermaid Editor",
-    "📋 Table Data Preview"
-])
+# -------------------------
+# 🧠 Database Session Setup
+# -------------------------
+DB_DIR = Path("/mnt/data/temp_dbs")
+DB_DIR.mkdir(parents=True, exist_ok=True)
 
-# -------- Tab 1: Upload SQLite or SQL --------
+if "db_name" not in st.session_state:
+    st.session_state.db_name = None
+    st.session_state.conn = None
+
+db_files = sorted(DB_DIR.glob("*.sqlite"))
+db_names = [f.name for f in db_files]
+
+col1, col2 = st.columns([3, 2])
+with col1:
+    db_selection = st.selectbox("📁 Choose active database", options=["Create new database"] + db_names)
+
+with col2:
+    if st.button("🗑️ Delete Selected DB") and st.session_state.db_name:
+        try:
+            os.remove(DB_DIR / st.session_state.db_name)
+            st.success("Database deleted.")
+            st.session_state.db_name = None
+            st.session_state.conn = None
+            st.experimental_rerun()
+        except:
+            st.error("Failed to delete DB.")
+
+if db_selection == "Create new database":
+    new_name = st.text_input("Enter name for new database", value="mydb")
+    if st.button("➕ Create"):
+        db_path = DB_DIR / f"{new_name}.sqlite"
+        if db_path.exists():
+            st.warning("File already exists.")
+        else:
+            conn = sqlite3.connect(db_path)
+            st.session_state.conn = conn
+            st.session_state.db_name = db_path.name
+            st.success(f"Created {db_path.name}")
+            st.experimental_rerun()
+else:
+    if st.session_state.db_name != db_selection:
+        st.session_state.conn = sqlite3.connect(DB_DIR / db_selection)
+        st.session_state.db_name = db_selection
+
+conn = st.session_state.conn
+
+# -------------------------
+# Tabs Layout
+# -------------------------
+tab1, tab2, tab3, tab4 = st.tabs(["📂 Upload File", "🧠 Live SQL Editor", "🛠️ Mermaid Editor", "📊 Data Preview"])
+
+# 📂 Tab 1
 with tab1:
-    uploaded_file = st.file_uploader("Upload a SQLite (.sqlite, .db) or SQL (.sql) file", type=["sqlite", "db", "sql"])
-
+    uploaded_file = st.file_uploader("Upload a SQLite (.db/.sqlite) or SQL (.sql)", type=["sqlite", "db", "sql"])
     if uploaded_file:
-        try:
-            if uploaded_file.name.endswith(".sql"):
-                sql_text = uploaded_file.read().decode("utf-8")
-                conn.executescript(sql_text)
-                schema, foreign_keys = extract_schema(conn)
-            else:
-                db_path = "temp_uploaded.sqlite"
-                with open(db_path, "wb") as f:
-                    f.write(uploaded_file.read())
-                db_conn = sqlite3.connect(db_path)
-                schema, foreign_keys = extract_schema(db_conn)
-                db_conn.close()
+        if uploaded_file.name.endswith(".sql"):
+            sql = uploaded_file.read().decode("utf-8")
+            schema, foreign_keys = parse_sql_schema(sql)
+        else:
+            db_path = "uploaded_temp.sqlite"
+            with open(db_path, "wb") as f:
+                f.write(uploaded_file.read())
+            schema, foreign_keys = extract_schema(db_path)
 
-            mermaid_code = generate_mermaid_code(schema, foreign_keys)
-            st.subheader("📋 Mermaid Code")
-            st.code(mermaid_code, language="mermaid")
-            st.subheader("📊 ER Diagram")
-            render_mermaid_in_browser(mermaid_code, theme)
+        code = generate_mermaid_code(schema, foreign_keys)
+        st.code(code, language="mermaid")
+        render_mermaid_in_browser(code, theme)
 
-        except Exception as e:
-            st.error(f"❌ Failed to process file: {e}")
-# -------- Tab 2: Live SQL Editor (CREATE/INSERT/SELECT) --------
+# 🧠 Tab 2
 with tab2:
-    import sqlite3
-    import pandas as pd
+    col1, col2 = st.columns([3, 2])
+    with col1:
+        sql_input = st.text_area("SQL (CREATE / INSERT / SELECT)", height=250)
+    with col2:
+        if st.button("▶️ Run SQL"):
+            try:
+                conn.executescript(sql_input)
+                st.success("SQL executed.")
+            except Exception as e:
+                st.error(e)
 
-    # Create or get in-memory DB connection (reset on refresh)
-    if "conn" not in st.session_state:
-        st.session_state.conn = sqlite3.connect(":memory:")
+        if st.button("📈 Generate ER Diagram"):
+            schema, fks = extract_schema(conn)
+            code = generate_mermaid_code(schema, fks)
+            st.code(code, language="mermaid")
+            render_mermaid_in_browser(code, theme)
 
-    conn = st.session_state.conn
-    cursor = conn.cursor()
-
-    st.write("Write SQL to CREATE tables, INSERT data, or RUN custom SELECT queries.")
-    sql_input = st.text_area("📝 Enter SQL commands below", height=250)
-
-    if st.button("▶️ Run SQL"):
+    if sql_input and re.search(r"\bSELECT\b", sql_input, re.IGNORECASE):
         try:
-            # Execute script (handles CREATE, INSERT, etc.)
-            cursor.executescript(sql_input)
-            conn.commit()
-
-            st.success("✅ SQL executed successfully.")
-
-            # Regenerate ER diagram
-            schema, foreign_keys = extract_schema(conn)
-            mermaid_code = generate_mermaid_code(schema, foreign_keys)
-            st.subheader("📊 ER Diagram")
-            render_mermaid_in_browser(mermaid_code, theme)
-
-            # If SELECT queries are present, try to run last one
-            if re.search(r"\bSELECT\b", sql_input, re.IGNORECASE):
-                last_select = [q for q in sqlparse.split(sql_input) if re.search(r"\bSELECT\b", q, re.IGNORECASE)]
-                if last_select:
-                    try:
-                        df = pd.read_sql_query(last_select[-1], conn)
-                        st.subheader("📄 Query Result")
-                        st.dataframe(df, use_container_width=True)
-                    except Exception as e:
-                        st.warning(f"⚠️ SELECT executed but result display failed: {e}")
+            last_select = [q for q in sqlparse.split(sql_input) if "SELECT" in q.upper()]
+            if last_select:
+                df = pd.read_sql_query(last_select[-1], conn)
+                st.dataframe(df)
         except Exception as e:
-            st.error(f"❌ Error executing SQL:\n\n{e}")
+            st.warning(e)
 
-
-
-# -------- Tab 3: Manual Mermaid Editor --------
+# 🛠️ Tab 3
 with tab3:
-    default_mermaid = """erDiagram
-    CUSTOMER {
-        INTEGER id
-        NVARCHAR name
-        NVARCHAR email
-    }
-    ORDER {
-        INTEGER id
-        INTEGER customer_id
-        DATETIME date
-    }
-    CUSTOMER ||--o{ ORDER : customer_id
-    """
-    custom_code = st.text_area("✏️ Edit Mermaid code manually", value=default_mermaid, height=300)
+    default_code = """erDiagram
+CUSTOMER {
+    INTEGER id
+    NVARCHAR name
+    NVARCHAR email
+}
+ORDER {
+    INTEGER id
+    INTEGER customer_id
+    DATETIME date
+}
+CUSTOMER ||--o{ ORDER : customer_id
+"""
+    mermaid_edit = st.text_area("Edit Mermaid", default_code, height=300)
+    if st.button("🔄 Render Manual Diagram"):
+        render_mermaid_in_browser(mermaid_edit, theme)
 
-    if st.button("🔄 Render Custom Mermaid"):
-        render_mermaid_in_browser(custom_code, theme)
-
-# -------- Tab 4: Table Data Preview --------
+# 📊 Tab 4
 with tab4:
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = [row[0] for row in cursor.fetchall()]
+    schema, _ = extract_schema(conn)
+    for table in schema.keys():
+        with st.expander(f"📦 {table}"):
+            st.markdown(f"**Structure:** `{[c[0] for c in schema[table]]}`")
+            df = pd.read_sql_query(f"SELECT * FROM {table}", conn)
+            st.dataframe(df)
 
-    if tables:
-        table_selected = st.selectbox("📌 Choose a table to view data", tables)
-        df = pd.read_sql_query(f"SELECT * FROM {table_selected} LIMIT 100", conn)
-        st.dataframe(df)
-    else:
-        st.info("ℹ️ No tables available.")
+            if st.button(f"❌ Drop `{table}`"):
+                try:
+                    conn.execute(f"DROP TABLE {table}")
+                    st.success(f"{table} deleted.")
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error(e)
+
+# 📌 Footer
+st.markdown("---")
+st.markdown("Made by **Garlapati Vamshi Krishna** | [LinkedIn](https://www.linkedin.com/in/gvk-13vk)")
+
