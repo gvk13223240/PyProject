@@ -9,8 +9,12 @@ uploaded_file = st.file_uploader(
     "Upload a SQLite (.sqlite, .db) or SQL (.sql) file", 
     type=["sqlite", "db", "sql"]
 )
+
 theme = st.radio("Choose diagram theme", options=["Light", "Dark"], index=0)
-def render_mermaid_in_browser(mermaid_code):
+
+def render_mermaid_in_browser(mermaid_code, selected_theme):
+    js_theme = "default" if selected_theme == "Light" else "dark"
+
     mermaid_html = f"""
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -28,7 +32,7 @@ def render_mermaid_in_browser(mermaid_code):
     <script>
         mermaid.initialize({{
             startOnLoad: true,
-            theme: document.body.classList.contains('light') ? 'default' : theme
+            theme: "{js_theme}"
         }});
 
         function downloadPNG() {{
@@ -76,7 +80,7 @@ if uploaded_file:
         st.code(mermaid_code, language="mermaid")
 
         st.subheader("📊 ER Diagram")
-        render_mermaid_in_browser(mermaid_code)
+        render_mermaid_in_browser(mermaid_code, theme)
 
     except Exception as e:
         st.error(f"❌ Failed to render diagram.\n\n{e}")
