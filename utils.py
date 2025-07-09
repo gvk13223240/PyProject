@@ -1,8 +1,12 @@
 import sqlite3
 import re
+import sqlparse
 
-def extract_schema(conn):
+# Extract schema and foreign keys from SQLite DB
+def extract_schema(db_path):
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = [row[0] for row in cursor.fetchall()]
 
@@ -19,8 +23,10 @@ def extract_schema(conn):
         for fk in fks:
             foreign_keys.append((table, fk[3], fk[2], fk[4]))
 
+    conn.close()
     return schema, foreign_keys
 
+# SQL to Mermaid type mapper
 def map_sqlite_type(sqlite_type: str) -> str:
     t = sqlite_type.upper()
     if "INT" in t:
@@ -36,6 +42,7 @@ def map_sqlite_type(sqlite_type: str) -> str:
     else:
         return "NVARCHAR"
 
+# Convert schema + foreign keys to Mermaid ERD code
 def generate_mermaid_code(schema, foreign_keys):
     lines = ["erDiagram"]
     for table, columns in schema.items():
@@ -46,11 +53,11 @@ def generate_mermaid_code(schema, foreign_keys):
 
     for from_table, from_col, to_table, to_col in foreign_keys:
         lines.append(f"    {to_table} ||--o{{ {from_table} : {from_col}")
-    
-    return "\\n".join(lines)
 
+    return "\n".join(lines)
+
+# Parse raw SQL schema into table definitions and FKs
 def parse_sql_schema(sql_text):
-    import sqlparse
     statements = sqlparse.split(sql_text)
     schema = {}
     foreign_keys = []
@@ -58,21 +65,32 @@ def parse_sql_schema(sql_text):
     for stmt in statements:
         stmt_clean = stmt.strip()
         if stmt_clean.upper().startswith("CREATE TABLE"):
-            table_match = re.search(r'CREATE TABLE\\s+["`]?([\\w]+)["`]?[\\s\\(]+', stmt_clean, re.IGNORECASE)
+            table_match = re.search(
+                r'CREATE TABLE\s+["`]?(\w+)["`]?\s*\((.*?)\);?', 
+                stmt_clean, re.IGNORECASE | re.DOTALL
+            )
             if table_match:
                 table_name = table_match.group(1)
+                column_block = table_match.group(2)
+
                 columns = []
-                column_lines = stmt_clean.split('(')[1].rsplit(')', 1)[0].split(',')
-                for col in column_lines:
-                    col = col.strip()
-                    if col.upper().startswith(\"FOREIGN KEY\"):
-                        fk_match = re.search(r'FOREIGN KEY\\s*\\((\\w+)\\)\\s*REFERENCES\\s*(\\w+)\\s*\\((\\w+)\\)', col, re.IGNORECASE)
+                for line in column_block.split(','):
+                    col_def = line.strip()
+                    if col_def.upper().startswith("FOREIGN KEY"):
+                        fk_match = re.search(
+                            r'FOREIGN KEY\s*\(["`]?(\w+)["`]?\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)',
+                            col_def, re.IGNORECASE
+                        )
                         if fk_match:
-                            foreign_keys.append((table_name, fk_match.group(1), fk_match.group(2), fk_match.group(3)))
-                    elif \"PRIMARY KEY\" not in col.upper():
-                        parts = col.split()
-                        if len(parts) >= 2:
-                            columns.append((parts[0], parts[1]))
+                            from_col = fk_match.group(1)
+                            to_table = fk_match.group(2)
+                            to_col = fk_match.group(3)
+                            foreign_keys.append((table_name, from_col, to_table, to_col))
+                    elif col_def and not col_def.upper().startswith("PRIMARY KEY"):
+                        col_parts = col_def.split()
+                        if len(col_parts) >= 2:
+                            columns.append((col_parts[0], col_parts[1]))
+
                 schema[table_name] = columns
 
     return schema, foreign_keys
