@@ -32,8 +32,12 @@ def render_mermaid_in_browser(mermaid_code, selected_theme):
     </div>
 
     <div id="mermaid-container" class="mermaid">
-        {mermaid_code}
-    </div>
+    {mermaid_code}
+</div>
+<div style="text-align:center; font-size:12px; color:#888; margin-top:1em;">
+    © Garlapati Vamshi Krishna • <a href='https://www.linkedin.com/in/gvk-13vk' target='_blank'>LinkedIn</a>
+</div>
+
 
     <script>
         mermaid.initialize({{
