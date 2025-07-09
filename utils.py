@@ -1,6 +1,8 @@
+# utils.py
 import sqlite3
 import sqlparse
 import re
+import streamlit as st
 
 def extract_schema(db_path):
     conn = sqlite3.connect(db_path)
@@ -61,20 +63,17 @@ def parse_sql_schema(sql_text):
     for stmt in statements:
         stmt_clean = stmt.strip()
         if stmt_clean.upper().startswith("CREATE TABLE"):
-            table_match = re.search(r'CREATE TABLE\s+["`]?(\w+)["`]?\s*\((.*?)\);?', stmt_clean, re.IGNORECASE | re.DOTALL)
+            table_match = re.search(r'CREATE TABLE\s+\"?(\w+)\"?\s*\((.*?)\);?', stmt_clean, re.IGNORECASE | re.DOTALL)
             if table_match:
                 table_name = table_match.group(1)
                 column_block = table_match.group(2)
 
                 columns = []
-                # Split columns carefully to avoid breaking on commas inside parentheses
-                col_defs = re.split(r',\s*(?![^()]*\))', column_block)
-
-                for col_def in col_defs:
-                    col_def = col_def.strip()
+                for line in column_block.split(','):
+                    col_def = line.strip()
                     if col_def.upper().startswith("FOREIGN KEY"):
                         fk_match = re.search(
-                            r'FOREIGN KEY\s*\(["`]?(\w+)["`]?\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)',
+                            r'FOREIGN KEY\s*\((\w+)\)\s*REFERENCES\s+(\w+)\s*\((\w+)\)',
                             col_def, re.IGNORECASE
                         )
                         if fk_match:
@@ -82,14 +81,28 @@ def parse_sql_schema(sql_text):
                             to_table = fk_match.group(2)
                             to_col = fk_match.group(3)
                             foreign_keys.append((table_name, from_col, to_table, to_col))
-                    elif col_def.upper().startswith("PRIMARY KEY"):
-                        # skip standalone PRIMARY KEY constraints here
-                        continue
-                    else:
-                        parts = col_def.split()
-                        if len(parts) >= 2:
-                            columns.append((parts[0], parts[1]))
-
+                    elif col_def and not col_def.upper().startswith("PRIMARY KEY"):
+                        col_parts = col_def.split()
+                        if len(col_parts) >= 2:
+                            columns.append((col_parts[0], col_parts[1]))
                 schema[table_name] = columns
-
     return schema, foreign_keys
+
+def preview_db_data(db_path):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    st.subheader("📊 Table Data Preview")
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = [row[0] for row in cursor.fetchall()]
+
+    for table in tables:
+        st.markdown(f"**{table}**")
+        try:
+            df = cursor.execute(f"SELECT * FROM {table} LIMIT 100").fetchall()
+            columns = [description[0] for description in cursor.description]
+            import pandas as pd
+            df = pd.DataFrame(df, columns=columns)
+            st.dataframe(df)
+        except Exception as e:
+            st.error(f"Error loading data from {table}: {e}")
+    conn.close()
