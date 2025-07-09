@@ -101,35 +101,50 @@ with tab1:
 
         except Exception as e:
             st.error(f"❌ Failed to process file: {e}")
-
 # -------- Tab 2: Live SQL Editor (CREATE/INSERT/SELECT) --------
 with tab2:
+    import sqlite3
+    import pandas as pd
+
+    # Create or get in-memory DB connection (reset on refresh)
+    if "conn" not in st.session_state:
+        st.session_state.conn = sqlite3.connect(":memory:")
+
+    conn = st.session_state.conn
+    cursor = conn.cursor()
+
     st.write("Write SQL to CREATE tables, INSERT data, or RUN custom SELECT queries.")
     sql_input = st.text_area("📝 Enter SQL commands below", height=250)
 
     if st.button("▶️ Run SQL"):
         try:
-            conn.executescript(sql_input)
-            st.success("✅ SQL executed.")
+            # Execute script (handles CREATE, INSERT, etc.)
+            cursor.executescript(sql_input)
+            conn.commit()
 
-            # Render ER diagram if structure changed
+            st.success("✅ SQL executed successfully.")
+
+            # Regenerate ER diagram
             schema, foreign_keys = extract_schema(conn)
             mermaid_code = generate_mermaid_code(schema, foreign_keys)
             st.subheader("📊 ER Diagram")
             render_mermaid_in_browser(mermaid_code, theme)
 
-            # Try displaying SELECT results
-            if re.search(r'\\bSELECT\\b', sql_input, re.IGNORECASE):
-                try:
-                    df = pd.read_sql_query(sql_input, conn)
-                    st.subheader("📄 SQL Query Result")
-                    st.dataframe(df)
-                except Exception as e:
-                    st.warning(f"⚠️ Query executed but failed to show result: {e}")
+            # If SELECT queries are present, try to run last one
+            if re.search(r"\bSELECT\b", sql_input, re.IGNORECASE):
+                last_select = [q for q in sqlparse.split(sql_input) if re.search(r"\bSELECT\b", q, re.IGNORECASE)]
+                if last_select:
+                    try:
+                        df = pd.read_sql_query(last_select[-1], conn)
+                        st.subheader("📄 Query Result")
+                        st.dataframe(df, use_container_width=True)
+                    except Exception as e:
+                        st.warning(f"⚠️ SELECT executed but result display failed: {e}")
         except Exception as e:
             st.error(f"❌ Error executing SQL:\n\n{e}")
 
-# -------- Tab 3: Manual Mermaid Editor --------
+
+
 # -------- Tab 3: Manual Mermaid Editor --------
 with tab3:
     default_mermaid = """erDiagram
