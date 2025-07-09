@@ -2,9 +2,7 @@ import sqlite3
 import re
 import sqlparse
 
-# Extract schema and foreign keys from SQLite DB
-def extract_schema(db_path):
-    conn = sqlite3.connect(db_path)
+def extract_schema(conn):
     cursor = conn.cursor()
 
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
@@ -23,7 +21,6 @@ def extract_schema(db_path):
         for fk in fks:
             foreign_keys.append((table, fk[3], fk[2], fk[4]))
 
-    conn.close()
     return schema, foreign_keys
 
 # SQL to Mermaid type mapper
