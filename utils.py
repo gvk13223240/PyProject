@@ -1,12 +1,10 @@
 import sqlite3
-import os
-import subprocess
 
 def extract_schema(db_path):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Get all non-system tables
+    # Get all user tables
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
     tables = [row[0] for row in cursor.fetchall()]
 
@@ -53,30 +51,3 @@ def generate_mermaid_code(schema, foreign_keys):
         lines.append(f"    {to_table} ||--o{{ {from_table} : {from_col}")
     
     return "\n".join(lines)
-
-def save_mermaid_file(mermaid_code, output_path):
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(mermaid_code)
-
-def render_mermaid_to_svg(input_path, output_path, theme="default"):
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
-    command = [
-        "C:\\Users\\gvk13\\AppData\\Roaming\\npm\\mmdc.cmd",                      # Mermaid CLI command
-        "-i", input_path,
-        "-o", output_path,
-        "--theme", theme             # Apply selected theme
-    ]
-
-    result = subprocess.run(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-
-    if result.returncode != 0:
-        raise RuntimeError(f"Mermaid CLI failed: {result.stderr.strip()}")
-
-# C:\\Users\\gvk13\\AppData\\Roaming\\npm\\mmdc.cmd
