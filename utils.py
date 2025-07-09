@@ -1,14 +1,8 @@
 import sqlite3
-import pandas as pd
+import sqlparse
 import re
 
 def extract_schema(db_path):
-    """
-    Extract tables, columns, and foreign keys from a SQLite DB file.
-    Returns:
-      schema: dict of {table_name: [(col_name, col_type), ...]}
-      foreign_keys: list of (from_table, from_col, to_table, to_col)
-    """
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -26,7 +20,6 @@ def extract_schema(db_path):
         cursor.execute(f"PRAGMA foreign_key_list('{table}')")
         fks = cursor.fetchall()
         for fk in fks:
-            # fk format: (id, seq, table, from, to, on_update, on_delete, match)
             foreign_keys.append((table, fk[3], fk[2], fk[4]))
 
     conn.close()
@@ -48,9 +41,6 @@ def map_sqlite_type(sqlite_type: str) -> str:
         return "NVARCHAR"
 
 def generate_mermaid_code(schema, foreign_keys):
-    """
-    Generate Mermaid ER diagram code from schema and foreign keys.
-    """
     lines = ["erDiagram"]
     for table, columns in schema.items():
         lines.append(f"    {table} {{")
@@ -59,20 +49,11 @@ def generate_mermaid_code(schema, foreign_keys):
         lines.append("    }")
 
     for from_table, from_col, to_table, to_col in foreign_keys:
-        # Mermaid syntax: PARENT ||--o{ CHILD : fk_column
-        # from_table references to_table, so arrow from to_table -> from_table
         lines.append(f"    {to_table} ||--o{{ {from_table} : {from_col}")
 
     return "\n".join(lines)
 
 def parse_sql_schema(sql_text):
-    """
-    Parse CREATE TABLE statements from SQL text.
-    Returns:
-      schema: dict of {table_name: [(col_name, col_type), ...]}
-      foreign_keys: list of (from_table, from_col, to_table, to_col)
-    """
-    import sqlparse
     statements = sqlparse.split(sql_text)
     schema = {}
     foreign_keys = []
@@ -80,18 +61,20 @@ def parse_sql_schema(sql_text):
     for stmt in statements:
         stmt_clean = stmt.strip()
         if stmt_clean.upper().startswith("CREATE TABLE"):
-            # extract table name and column block
             table_match = re.search(r'CREATE TABLE\s+["`]?(\w+)["`]?\s*\((.*?)\);?', stmt_clean, re.IGNORECASE | re.DOTALL)
             if table_match:
                 table_name = table_match.group(1)
                 column_block = table_match.group(2)
 
                 columns = []
-                for line in column_block.split(','):
-                    col_def = line.strip()
+                # Split columns carefully to avoid breaking on commas inside parentheses
+                col_defs = re.split(r',\s*(?![^()]*\))', column_block)
+
+                for col_def in col_defs:
+                    col_def = col_def.strip()
                     if col_def.upper().startswith("FOREIGN KEY"):
                         fk_match = re.search(
-                            r'FOREIGN KEY\s*\(["`]?(\w+)["`]?\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)', 
+                            r'FOREIGN KEY\s*\(["`]?(\w+)["`]?\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)',
                             col_def, re.IGNORECASE
                         )
                         if fk_match:
@@ -99,44 +82,14 @@ def parse_sql_schema(sql_text):
                             to_table = fk_match.group(2)
                             to_col = fk_match.group(3)
                             foreign_keys.append((table_name, from_col, to_table, to_col))
-                    elif col_def and not col_def.upper().startswith("PRIMARY KEY"):
-                        col_parts = col_def.split()
-                        if len(col_parts) >= 2:
-                            columns.append((col_parts[0], col_parts[1]))
+                    elif col_def.upper().startswith("PRIMARY KEY"):
+                        # skip standalone PRIMARY KEY constraints here
+                        continue
+                    else:
+                        parts = col_def.split()
+                        if len(parts) >= 2:
+                            columns.append((parts[0], parts[1]))
 
                 schema[table_name] = columns
+
     return schema, foreign_keys
-
-def preview_table_content(db_path, table_name, limit=10):
-    """
-    Return first N rows of a table as a pandas DataFrame.
-    """
-    conn = sqlite3.connect(db_path)
-    try:
-        query = f"SELECT * FROM {table_name} LIMIT {limit}"
-        df = pd.read_sql_query(query, conn)
-    except Exception:
-        df = None
-    finally:
-        conn.close()
-    return df
-
-def infer_foreign_keys(schema, existing_fks):
-    """
-    Heuristic to guess foreign keys not explicitly declared:
-    For each table, if it has columns named like other_table_id, and
-    foreign key not already declared, add it.
-    """
-    guessed_fks = []
-    tables = list(schema.keys())
-    existing_fk_set = set(existing_fks)
-    for table, columns in schema.items():
-        col_names = [col[0] for col in columns]
-        for col in col_names:
-            if col.endswith("_id"):
-                ref_table = col[:-3]  # Remove _id suffix
-                if ref_table in tables:
-                    candidate = (table, col, ref_table, "id")
-                    if candidate not in existing_fk_set:
-                        guessed_fks.append(candidate)
-    return guessed_fks
