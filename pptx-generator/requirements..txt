@@ -12,3 +12,4 @@ streamlit-image-comparison
 rembg
 onnxruntime
 sqlparse
+python-pptx
