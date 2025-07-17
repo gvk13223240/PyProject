@@ -1,0 +1,14 @@
+streamlit
+opencv-python-headless
+numpy
+Pillow
+matplotlib
+sounddevice
+scipy
+python-dotenv
+streamlit-oauth
+python-pptx
+streamlit-image-comparison
+rembg
+onnxruntime
+sqlparse
