@@ -5,50 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import json
-
-# Optional: use if you want the image comparison feature
-# pip install streamlit-image-comparison
 from streamlit_image_comparison import image_comparison
-
-
-# ---------------------------
-# USER AUTH
-# ---------------------------
-USERS = {
-    "alice": "pass123",
-    "bob": "hello456",
-    "Robert":"12345"
-}
-
-def login():
-    st.title("🔐 Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if USERS.get(username) == password:
-            st.session_state.authenticated = True
-            st.session_state.username = username
-            st.success(f"Welcome, {username}!")
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
-
-def logout():
-    st.session_state.authenticated = False
-    st.session_state.username = ""
-    st.rerun()
-
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-    st.session_state.username = ""
-
-if not st.session_state.authenticated:
-    login()
-    st.stop()
-else:
-    st.sidebar.write(f"👤 Logged in as: `{st.session_state.username}`")
-    if st.sidebar.button("Logout"):
-        logout()
 
 # ---------------------------
 # FILTER FUNCTIONS
@@ -84,7 +41,6 @@ def apply_vignette(image):
     return vignette
 
 def apply_cartoon(image):
-    # Enhanced OpenCV-based cartoon effect
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.medianBlur(gray, 7)
     edges = cv2.adaptiveThreshold(
@@ -92,9 +48,8 @@ def apply_cartoon(image):
         cv2.ADAPTIVE_THRESH_MEAN_C,
         cv2.THRESH_BINARY, 9, 9
     )
-    color = cv2.bilateralFilter(image, d=9, sigmaColor=200, sigmaSpace=200)
-    cartoon = cv2.bitwise_and(color, color, mask=edges)
-    return cartoon
+    color = cv2.bilateralFilter(image, 9, 200, 200)
+    return cv2.bitwise_and(color, color, mask=edges)
 
 def apply_beautify(image):
     return cv2.bilateralFilter(image, 15, 75, 75)
@@ -104,17 +59,18 @@ def apply_beautify(image):
 # ---------------------------
 PRESET_DIR = "presets"
 os.makedirs(PRESET_DIR, exist_ok=True)
+DEFAULT_USER = "default"
 
-def get_preset_path(username):
-    return os.path.join(PRESET_DIR, f"{username}_presets.json")
+def get_preset_path():
+    return os.path.join(PRESET_DIR, f"{DEFAULT_USER}_presets.json")
 
-def save_preset(username, filters):
-    path = get_preset_path(username)
+def save_preset(filters):
+    path = get_preset_path()
     with open(path, "w") as f:
         json.dump(filters, f)
 
-def load_preset(username):
-    path = get_preset_path(username)
+def load_preset():
+    path = get_preset_path()
     if os.path.exists(path):
         with open(path, "r") as f:
             return json.load(f)
@@ -153,11 +109,11 @@ if st.button("💾 Save Preset"):
         "blur": blur, "edge": edge, "vignette": vignette,
         "cartoon": cartoon, "beautify": beautify
     }
-    save_preset(st.session_state.username, filters)
+    save_preset(filters)
     st.success("Preset saved!")
 
 if st.button("📥 Load Preset"):
-    preset = load_preset(st.session_state.username)
+    preset = load_preset()
     if preset:
         warm = preset.get("warm", False)
         cool = preset.get("cool", False)
@@ -169,7 +125,7 @@ if st.button("📥 Load Preset"):
         vignette = preset.get("vignette", False)
         cartoon = preset.get("cartoon", False)
         beautify = preset.get("beautify", False)
-        st.success("Preset loaded! Reloading page...")
+        st.success("Preset loaded! Reloading...")
         st.rerun()
     else:
         st.warning("No preset found.")
@@ -184,40 +140,27 @@ if uploaded_img:
         filter_resized = cv2.resize(filter_cv, (img.shape[1], img.shape[0]))
         img = cv2.addWeighted(img, 1 - strength, filter_resized, strength, 0)
 
-    if warm:
-        img = apply_overlay(img, (20, 100, 200), 0.4)
-    if cool:
-        img = apply_overlay(img, (200, 100, 20), 0.4)
-    if sepia:
-        img = apply_overlay(img, (50, 100, 150), 0.4)
-    if grayscale:
-        img = apply_grayscale(img)
-    if invert:
-        img = apply_invert(img)
-    if beautify:
-        img = apply_beautify(img)
-    if blur:
-        img = apply_blur(img)
-    if edge:
-        img = apply_edge(img)
-    if vignette:
-        img = apply_vignette(img)
-    if cartoon:
-        img = apply_cartoon(img)
+    if warm: img = apply_overlay(img, (20, 100, 200), 0.4)
+    if cool: img = apply_overlay(img, (200, 100, 20), 0.4)
+    if sepia: img = apply_overlay(img, (50, 100, 150), 0.4)
+    if grayscale: img = apply_grayscale(img)
+    if invert: img = apply_invert(img)
+    if beautify: img = apply_beautify(img)
+    if blur: img = apply_blur(img)
+    if edge: img = apply_edge(img)
+    if vignette: img = apply_vignette(img)
+    if cartoon: img = apply_cartoon(img)
 
     result_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
-    # Add small watermark to corner
-    watermark_text = "© VKG"
+    # Add watermark
     draw = ImageDraw.Draw(result_pil)
-    font_size = 10
+    watermark_text = "© VKG"
     try:
-        font = ImageFont.truetype("arial.ttf", font_size)
+        font = ImageFont.truetype("arial.ttf", 10)
     except:
         font = ImageFont.load_default()
-
-    text_position = (result_pil.width - 50, result_pil.height - 20)
-    draw.text(text_position, watermark_text, fill=(180, 180, 180), font=font)
+    draw.text((result_pil.width - 50, result_pil.height - 20), watermark_text, (180, 180, 180), font=font)
 
     st.markdown("### 🎚️ Compare Before and After")
     image_comparison(
@@ -227,12 +170,10 @@ if uploaded_img:
         label2="Filtered"
     )
 
-    st.markdown("### 📥 Download Result")
     buffer = io.BytesIO()
     result_pil.save(buffer, format="PNG")
-    st.download_button("Download Filtered Image", data=buffer.getvalue(), file_name="filtered_output.png")
+    st.download_button("📥 Download Filtered Image", data=buffer.getvalue(), file_name="filtered_output.png")
 
-# Footer
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; font-size: 12px;'>Made by Vamshi Krishna G.......</div>",
