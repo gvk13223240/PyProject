@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="Retail Sales Forecasting™", page_icon="📊", layout="wide")
 st.title("📊 Retail Sales Forecasting & Analytics Dashboard™ by gvk13223240")
 
-st.sidebar.image("logo.png", use_container_width=True)
+# st.sidebar.image("logo.png", use_container_width=True)
 st.sidebar.markdown("© 2025 gvk13223240™")
 
 uploaded_file = st.file_uploader("Upload Sales Data (CSV/Excel)", type=["csv", "xlsx"])
@@ -90,3 +90,4 @@ if uploaded_file:
         """, unsafe_allow_html=True)
 else:
     st.info("👆 Please upload a sales dataset to get started. Required columns: date, sales, product, region")
+
